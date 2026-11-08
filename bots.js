@@ -16,10 +16,10 @@
   };
 
   const PROFILES = {
-    PRO_GTO:    { aggression: 0.68, looseness: 0.42, bluff: 0.22, callThreshold: 0.55, icmSensitivity: 0.70, positionAdaptivity: 1.00, limpHabit: 0.10 },
-    PRO_SOLVER: { aggression: 0.78, looseness: 0.55, bluff: 0.34, callThreshold: 0.45, icmSensitivity: 0.55, positionAdaptivity: 1.15, limpHabit: 0.06 },
-    PRO_ICM:    { aggression: 0.72, looseness: 0.45, bluff: 0.28, callThreshold: 0.52, icmSensitivity: 1.30, positionAdaptivity: 1.05, limpHabit: 0.08 },
-    PRO_LAG:    { aggression: 0.92, looseness: 0.72, bluff: 0.48, callThreshold: 0.32, icmSensitivity: 0.35, positionAdaptivity: 1.25, limpHabit: 0.04 }
+    PRO_GTO:    { aggression: 0.68, looseness: 0.42, bluff: 0.22, callThreshold: 0.55, icmSensitivity: 0.70, positionAdaptivity: 1.00, limpHabit: 0.12 },
+    PRO_SOLVER: { aggression: 0.80, looseness: 0.55, bluff: 0.36, callThreshold: 0.45, icmSensitivity: 0.55, positionAdaptivity: 1.15, limpHabit: 0.08 },
+    PRO_ICM:    { aggression: 0.72, looseness: 0.45, bluff: 0.28, callThreshold: 0.52, icmSensitivity: 1.30, positionAdaptivity: 1.05, limpHabit: 0.10 },
+    PRO_LAG:    { aggression: 0.94, looseness: 0.72, bluff: 0.50, callThreshold: 0.32, icmSensitivity: 0.35, positionAdaptivity: 1.25, limpHabit: 0.05 }
   };
 
   const STACK_DEPTHS = [
@@ -39,22 +39,26 @@
     CO: 1.80, BTN: 3.00, SB: 2.50, BB: 2.20
   };
 
+  // Realistic PRO open thresholds (normalized hand strength 0..1).
+  // These correspond roughly to: UTG 15-17%, HJ 22-25%, CO 28-33%, BTN 42-52%
   const BASE_OPEN_THRESHOLDS = {
-    UTG: 0.72, UTG1: 0.68, LJ: 0.62, HJ: 0.55,
-    CO: 0.45, BTN: 0.32, SB: 0.38, BB: 0.60
+    UTG: 0.60, UTG1: 0.58, LJ: 0.53, HJ: 0.48,
+    CO: 0.42, BTN: 0.30, SB: 0.36, BB: 0.55
   };
 
+  // Nash push frequencies (approx chip-EV) per position and stack depth
   const NASH_PUSH_TABLE = {
-    UTG:  { 5: 0.22, 8: 0.18, 10: 0.16, 12: 0.14, 15: 0.12, 20: 0.10, 25: 0.09 },
-    UTG1: { 5: 0.25, 8: 0.21, 10: 0.18, 12: 0.16, 15: 0.14, 20: 0.12, 25: 0.10 },
-    LJ:   { 5: 0.30, 8: 0.26, 10: 0.22, 12: 0.19, 15: 0.16, 20: 0.13, 25: 0.11 },
-    HJ:   { 5: 0.36, 8: 0.31, 10: 0.26, 12: 0.22, 15: 0.18, 20: 0.15, 25: 0.12 },
-    CO:   { 5: 0.44, 8: 0.38, 10: 0.32, 12: 0.27, 15: 0.22, 20: 0.18, 25: 0.14 },
-    BTN:  { 5: 0.55, 8: 0.48, 10: 0.42, 12: 0.35, 15: 0.30, 20: 0.24, 25: 0.19 },
-    SB:   { 5: 0.68, 8: 0.60, 10: 0.52, 12: 0.44, 15: 0.38, 20: 0.30, 25: 0.24 },
-    BB:   { 5: 0.50, 8: 0.42, 10: 0.36, 12: 0.30, 15: 0.25, 20: 0.20, 25: 0.16 }
+    UTG:  { 5: 0.24, 8: 0.20, 10: 0.175, 12: 0.155, 15: 0.135, 20: 0.115, 25: 0.100 },
+    UTG1: { 5: 0.27, 8: 0.23, 10: 0.195, 12: 0.170, 15: 0.150, 20: 0.128, 25: 0.110 },
+    LJ:   { 5: 0.32, 8: 0.28, 10: 0.240, 12: 0.205, 15: 0.175, 20: 0.145, 25: 0.125 },
+    HJ:   { 5: 0.38, 8: 0.33, 10: 0.285, 12: 0.240, 15: 0.205, 20: 0.170, 25: 0.145 },
+    CO:   { 5: 0.46, 8: 0.40, 10: 0.345, 12: 0.290, 15: 0.245, 20: 0.200, 25: 0.170 },
+    BTN:  { 5: 0.57, 8: 0.50, 10: 0.435, 12: 0.365, 15: 0.310, 20: 0.255, 25: 0.210 },
+    SB:   { 5: 0.70, 8: 0.62, 10: 0.535, 12: 0.450, 15: 0.390, 20: 0.320, 25: 0.260 },
+    BB:   { 5: 0.52, 8: 0.44, 10: 0.375, 12: 0.320, 15: 0.270, 20: 0.220, 25: 0.180 }
   };
 
+  // Prior probabilities for Bayesian shrinkage
   const PRIORS = {
     rfi: 0.25, threeBet: 0.08, foldTo3Bet: 0.50, coldCall: 0.15,
     fourBet: 0.05, foldTo4Bet: 0.55, call4Bet: 0.40, fiveBet: 0.10, cold4Bet: 0.02,
@@ -74,7 +78,7 @@
     foldTo4Bet: 12, bbDefend: 15, sbRfi: 12, steal: 10, resteal: 12, isoRaise: 10
   };
 
-  // Confidence thresholds for stat usage
+  // Confidence thresholds for exploiting statistics
   const STAT_CONFIDENCE = {
     IGNORE: 0.25,
     MICRO: 0.45,
@@ -89,12 +93,25 @@
     const v1 = R[card1.rank], v2 = R[card2.rank];
     const hi = Math.max(v1, v2), lo = Math.min(v1, v2);
     const suited = card1.suit === card2.suit;
+    // Pairs: 0.50..1.00 (22..AA)
     if (v1 === v2) return 0.50 + (hi - 2) / 12 * 0.50;
-    let s = (hi - 2) / 12 * 0.55 + (lo - 2) / 12 * 0.25;
+    // Non-pairs: base from high card + low card contributions
+    let s = (hi - 2) / 12 * 0.50 + (lo - 2) / 12 * 0.20;
+    // Suited bonus
     if (suited) s += 0.08;
-    if (hi === 14) s += 0.05;
-    if (Math.abs(hi - lo) === 1) s += 0.04;
-    if (Math.abs(hi - lo) === 2) s += 0.02;
+    // Ace blocker / wheel potential
+    if (hi === 14) s += 0.03;
+    // Connectedness
+    const gap = Math.abs(hi - lo);
+    if (gap === 1) s += 0.05;
+    else if (gap === 2) s += 0.03;
+    else if (gap === 3) s += 0.01;
+    // Broadway hands still valuable but not as much as suited
+    if (!suited && hi >= 10 && lo >= 10) s += 0.02;
+    // Offsuit broadway penalty (play worse than strength suggests)
+    if (!suited && hi >= 11 && lo >= 10) s -= 0.03;
+    // Very weak offsuit hands penalty
+    if (!suited && hi <= 10 && gap >= 4) s -= 0.03;
     return Math.min(1, Math.max(0, s));
   }
 
@@ -112,34 +129,62 @@
   function getBlockerScore(card1, card2) {
     const r1 = card1.rank, r2 = card2.rank;
     const v1 = R[r1], v2 = R[r2];
+    const suited = card1.suit === card2.suit;
     let score = 0;
-    if (v1 === 14 && v2 >= 2 && v2 <= 5 && card1.suit === card2.suit) score += 0.15;
-    if (v1 === 13 && v2 >= 10 && v2 <= 12 && card1.suit === card2.suit) score += 0.05;
-    if ((v1 === 12 && v2 === 11) || (v1 === 11 && v2 === 10)) score -= 0.10;
+    // A5s-A2s: block AA/AK, retain equity
+    if (v1 === 14 && v2 >= 2 && v2 <= 5 && suited) score += 0.15;
+    // A9s-A6s: medium
+    if (v1 === 14 && v2 >= 6 && v2 <= 9 && suited) score += 0.05;
+    // KQs-KTs: block KK/QQ/AK/AQ
+    if (v1 === 13 && v2 >= 10 && v2 <= 12 && suited) score += 0.06;
+    // QJs, JTs: weak, block folds
+    if ((v1 === 12 && v2 === 11 && suited) || (v1 === 11 && v2 === 10 && suited)) score -= 0.10;
+    // Small pairs, connectors: no meaningful blocker
     if (v1 === v2 && v1 <= 8) score -= 0.20;
-    if (v1 === 14 && v2 === 9 && card1.suit !== card2.suit) score += 0.10;
+    // A9o on bubble: strong blocker, better than 98s
+    if (v1 === 14 && v2 === 9 && !suited) score += 0.10;
+    // Offsuit A-x: medium blocker
+    if (v1 === 14 && v2 >= 2 && v2 <= 8 && !suited) score += 0.05;
     return score;
   }
 
-  function equityRealization(card1, card2, position, multiway) {
+  function getBlockerReason(card1, card2) {
+    const v1 = R[card1.rank], v2 = R[card2.rank];
+    const suited = card1.suit === card2.suit;
+    if (v1 === 14 && v2 >= 2 && v2 <= 5 && suited) return 'A5s-A2s: blocks AA/AK';
+    if (v1 === 14 && v2 === 9 && !suited) return 'A9o: blocks AA/AK/AQ';
+    if (v1 === 14 && v2 >= 2 && v2 <= 8) return 'A-x: partial AA/AK block';
+    if (v1 === 13 && v2 >= 10 && v2 <= 12 && suited) return 'KQs-KTs: blocks KK/QQ/AK';
+    if ((v1 === 12 && v2 === 11) || (v1 === 11 && v2 === 10)) return 'QJs/JTs: weak blocker';
+    if (v1 === v2 && v1 <= 8) return 'small pair: no blocker';
+    return '';
+  }
+
+  function equityRealization(card1, card2, position, numActive) {
     let mult = 1.0;
     const v1 = R[card1.rank], v2 = R[card2.rank];
     const suited = card1.suit === card2.suit;
-    const isConnector = Math.abs(v1 - v2) === 1;
+    const gap = Math.abs(v1 - v2);
+    const isConnector = gap === 1;
     const isSmallPair = v1 === v2 && v1 <= 8;
     const isBroadwayOffsuit = !suited && v1 >= 10 && v2 >= 10;
 
+    // Position factor
     if (position === 'BTN' || position === 'CO') mult *= 1.08;
     else if (position === 'SB' || position === 'BB') mult *= 0.88;
     else mult *= 0.97;
 
-    if (suited) mult += 0.05;
+    // Hand structure
+    if (suited) mult += 0.06;
     if (isConnector) mult += 0.03;
     if (isBroadwayOffsuit) mult -= 0.08;
     if (isSmallPair && (position === 'SB' || position === 'BB')) mult -= 0.05;
-    if (multiway > 2) mult -= 0.06;
 
-    return Math.max(0.70, Math.min(1.15, mult));
+    // Multiway penalty
+    if (numActive > 2) mult -= 0.06;
+    if (numActive > 4) mult -= 0.04;
+
+    return Math.max(0.65, Math.min(1.18, mult));
   }
 
   // ========================================================================
@@ -201,8 +246,8 @@
   }
 
   function classifyOpponent(stats) {
-    if (stats.handsPlayed < 10) return 'unknown';
-    const vpip = shrink(stats.coldCall + stats.limp, stats.coldCallOpportunities || stats.limp + stats.coldCall + 1, 'coldCall').value;
+    if (stats.handsPlayed < 15) return 'unknown';
+    const vpip = shrink(stats.coldCall + stats.limp, stats.coldCallOpportunities || 1, 'coldCall').value;
     const pfr = shrink(stats.rfi, stats.rfiOpportunities || 1, 'rfi').value;
     const tb = shrink(stats.threeBet, stats.threeBetOpportunities || 1, 'threeBet').value;
     const f3b = shrink(stats.foldTo3Bet, stats.foldTo3BetOpportunities || 1, 'foldTo3Bet').value;
@@ -240,13 +285,27 @@
   // BLOCK 3 — ICM / BUBBLE FACTOR
   // ========================================================================
 
-  function calculateBubbleFactor(myStackBB, opponentStackBB, playersLeft, itmCount) {
+  function calculateBubbleFactor(myStackBB, opponentStackBB, playersLeft, itmCount, payoutStructure) {
     if (playersLeft <= itmCount) return 1.0;
     const onBubble = (playersLeft - itmCount) <= 2;
-    if (!onBubble) return 1.0 + Math.max(0, (itmCount / Math.max(1, playersLeft)) - 0.3) * 0.5;
-    if (myStackBB < 15) return 1.4;
-    if (myStackBB > 40) return 1.6;
-    return 1.8;
+    const finalTable = playersLeft <= 3;
+    let base = 1.0;
+    if (finalTable) {
+      base = 1.85 + (payoutStructure === 'steep' ? 0.25 : 0.05);
+    } else if (onBubble) {
+      base = 1.65 + (payoutStructure === 'steep' ? 0.20 : 0.05);
+    } else if (playersLeft <= itmCount + 4) {
+      base = 1.30;
+    } else {
+      base = 1.10;
+    }
+    // Short stack BF is lower (can push wider, fold equity high)
+    if (myStackBB < 15) base *= 0.85;
+    // Big stack BF is lower (can pressure, opponent can't call wide)
+    else if (myStackBB > 40) base *= 0.90;
+    // If opponent is bigger stack and can call without risk, tighten further
+    if (opponentStackBB > myStackBB * 1.5) base *= 1.10;
+    return Math.max(1.0, base);
   }
 
   function getICMPressure(playersLeft, itmCount) {
@@ -261,70 +320,7 @@
     return 'flat';
   }
 
-  function adjustThresholdForICM(baseThreshold, bubbleFactor, icmSensitivity) {
-    const adjustment = (bubbleFactor - 1.0) * icmSensitivity * 0.15;
-    return Math.min(0.98, baseThreshold + adjustment);
-  }
-
-  // ========================================================================
-  // BLOCK 3-B — CONTEXT DETECTION & STAT APPLICATION HELPERS
-  // ========================================================================
-
-  // Determine the exact preflop situation from engine-provided data.
-  // Engine passes: toCall, currentBet, bb, contextType (already computed), numLimpers,
-  // isRealRaise, raiserPosition, facingAllin, facing3Bet, facing4Bet, position.
-  function detectContext(ctx) {
-    const street = ctx.street;
-    const position = ctx.position;
-    const toCall = ctx.toCall || 0;
-    const bb = ctx.bb || 1;
-    const currentBet = ctx.currentBet || 0;
-
-    if (street !== 'preflop') {
-      if (toCall > 0) {
-        if (ctx.facingAllin) return 'facing_allin_postflop';
-        return 'facing_bet_postflop';
-      }
-      return 'unopened_postflop';
-    }
-
-    // Engine-provided contextType is authoritative if present
-    if (ctx.contextType) {
-      switch (ctx.contextType) {
-        case 'unopened': return 'unopened';
-        case 'facing_limp': return 'facing_limp';
-        case 'bb_check_option': return 'bb_check_option';
-        case 'facing_raise': return 'facing_raise';
-        case 'facing_3bet': return 'facing_3bet';
-        case 'facing_4bet': return 'facing_4bet';
-        case 'facing_allin_preflop': return 'facing_allin_preflop';
-        default: break;
-      }
-    }
-
-    // Fallback: recompute from raw fields
-    const isBB = position === 'BB';
-    const isRealRaise = ctx.isRealRaise !== undefined
-      ? ctx.isRealRaise
-      : currentBet > bb;
-    const numLimpers = ctx.numLimpers !== undefined ? ctx.numLimpers : 0;
-
-    if (ctx.facingAllin) return 'facing_allin_preflop';
-    if (isBB && !isRealRaise && toCall === 0) return 'bb_check_option';
-    if (!isRealRaise) {
-      if (numLimpers > 0 && toCall > 0) return 'facing_limp';
-      if (numLimpers > 0 && toCall === 0) return 'bb_check_option';
-      return 'unopened';
-    }
-    const raiseLevel = currentBet / bb;
-    if (raiseLevel >= 4.0) return 'facing_4bet';
-    if (raiseLevel >= 2.3) return 'facing_3bet';
-    return 'facing_raise';
-  }
-
-  // Apply statistic modifier to a base threshold.
-  // Returns adjusted value plus diagnostics about the usage.
-  // multiplier: how strongly a strong read influences the threshold (default 0.15 = 15%)
+  // Apply stat modifier to a base threshold. Returns adjusted + diagnostics.
   function applyStatModifier(baseValue, stat, direction, multiplier) {
     const m = (multiplier !== undefined) ? multiplier : 0.15;
     const prior = stat.value;
@@ -333,23 +329,12 @@
     let level = 'ignored';
 
     if (conf >= STAT_CONFIDENCE.IGNORE) {
-      // Determine direction of deviation from prior
-      // direction: 'call_more' means higher stat value → loosen threshold (lower value)
-      //            'raise_more' means higher stat value → tighten threshold (higher value)
       const delta = (prior - 0.5);
       let rawEffect;
-      if (direction === 'fold_to_aggr') {
-        // Higher fold stat → opponent folds more → increase aggression (lower call threshold / higher open freq)
-        rawEffect = -delta;
-      } else if (direction === 'call_station') {
-        // Higher call stat → opponent calls more → tighten value (higher threshold)
-        rawEffect = delta;
-      } else if (direction === 'respect_aggr') {
-        // Higher aggr stat → opponent raises more → tighten call threshold
-        rawEffect = delta;
-      } else {
-        rawEffect = delta;
-      }
+      if (direction === 'fold_to_aggr') rawEffect = -delta;
+      else if (direction === 'call_station') rawEffect = delta;
+      else if (direction === 'respect_aggr') rawEffect = delta;
+      else rawEffect = delta;
 
       if (conf < STAT_CONFIDENCE.MICRO) {
         effect = rawEffect * 0.05;
@@ -368,7 +353,560 @@
   }
 
   // ========================================================================
-  // BLOCK 4 — PRO_GTO: The Baseline (Balanced, GTO-approximating)
+  // BLOCK 4 — CONTEXT DETECTION
+  // ========================================================================
+
+  // Detect the actual preflop/postflop situation, ignoring "toCall > 0" traps.
+  function detectContext(ctx) {
+    const street = ctx.street;
+    const position = ctx.position;
+    const toCall = ctx.toCall || 0;
+    const bb = ctx.bb || 1;
+    const currentBet = ctx.currentBet || 0;
+    const pot = ctx.pot || 0;
+    const numActive = ctx.numActive || 8;
+
+    if (street !== 'preflop') {
+      if (toCall > 0) {
+        if (ctx.facingAllin) return 'facing_allin_postflop';
+        return 'facing_bet_postflop';
+      }
+      return 'unopened_postflop';
+    }
+
+    const isBB = position === 'BB';
+    const isSB = position === 'SB';
+
+    // Count limpers
+    let numLimpers = 0;
+    if (ctx.numLimpers !== undefined) {
+      numLimpers = ctx.numLimpers;
+    } else {
+      // Cannot reliably count without engine support; use pot heuristic
+      if (currentBet === bb && pot > bb * 2.5) {
+        numLimpers = Math.max(1, Math.round((pot - bb) / bb) - 1);
+      }
+    }
+
+    const isRealRaise = currentBet > bb;
+
+    // BB check option: BB has already paid, no raise exists, no call required
+    if (isBB && !isRealRaise && toCall === 0) {
+      if (numLimpers > 0) return 'bb_vs_limp';
+      return 'bb_check_option';
+    }
+
+    // SB limp option (SB called to limp, BB gets option)
+    if (isBB && !isRealRaise && toCall === 0) {
+      return 'bb_check_option';
+    }
+
+    // Facing all-in
+    if (ctx.facingAllin) return 'facing_allin_preflop';
+
+    // No raise yet
+    if (!isRealRaise) {
+      if (numLimpers > 0 && toCall > 0) return 'facing_limp';
+      if (numLimpers > 0 && toCall === 0) return 'bb_vs_limp';
+      return 'unopened';
+    }
+
+    // Real raise exists
+    const raiseLevel = currentBet / bb;
+    if (raiseLevel >= 10.0) return 'facing_4bet';
+    if (raiseLevel >= 4.5) return 'facing_3bet';
+    return 'facing_raise';
+  }
+
+  // ========================================================================
+  // BLOCK 5 — SHARED HELPERS
+  // ========================================================================
+
+  function getOpenSizeBB(ctx) {
+    const position = ctx.position;
+    const stackBB = (ctx.myStack || 0) / (ctx.bb || 1);
+    const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
+    let size = 2.5;
+    if (stackBB < 40) size = 2.3;
+    if (stackBB < 25) size = 2.1;
+    if (stackBB < 18) size = 2.0;
+    if (position === 'SB') size += 0.3;
+    if (position === 'BTN') size = Math.max(2.0, size - 0.2);
+    if (hasAnte) size = Math.max(2.0, size - 0.4);
+    return size;
+  }
+
+  function getThreeBetSizeBB(ctx, openerSizeBB, isIP) {
+    const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
+    let mult = isIP ? 3.4 : 4.4;
+    const stackBB = (ctx.myStack || 0) / (ctx.bb || 1);
+    if (stackBB < 50) mult = isIP ? 3.0 : 4.0;
+    if (stackBB < 30) mult = isIP ? 2.8 : 3.6;
+    let size = openerSizeBB * mult;
+    if (hasAnte) size += 0.3;
+    return size;
+  }
+
+  function getSqueezeSizeBB(ctx, openerSizeBB, numCallers, isOOP) {
+    let size = openerSizeBB * 3.7 + numCallers * 1.0;
+    if (isOOP) size += 1.0;
+    return size;
+  }
+
+  function getIsoSizeBB(ctx, numLimpers) {
+    const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
+    let size = 3.0 + numLimpers * 1.0;
+    if (hasAnte) size += 0.3;
+    return size;
+  }
+
+  function isInPosition(position, openerPosition) {
+    const order = { 'UTG': 0, 'UTG1': 1, 'LJ': 2, 'HJ': 3, 'CO': 4, 'BTN': 5, 'SB': 6, 'BB': 7 };
+    const myIdx = order[position] !== undefined ? order[position] : 0;
+    const opIdx = order[openerPosition] !== undefined ? order[openerPosition] : 5;
+    // BTN is always IP vs blinds; blinds are OOP vs everyone
+    if (position === 'BTN' || position === 'CO') return true;
+    if (position === 'SB' || position === 'BB') return false;
+    return myIdx > opIdx;
+  }
+
+  // ========================================================================
+  // BLOCK 6 — SHARED PREFLOP DECISION FRAMEWORK
+  // ========================================================================
+  // Each bot type uses the same framework but with different profile params.
+  // This ensures consistent context detection and shared improvement.
+
+  function decidePreflopCore(botType, ctx, profile) {
+    const card1 = ctx.card1, card2 = ctx.card2;
+    if (!card1 || !card2) {
+      return { action: 'fold', amount: 0, diagnostics: { error: 'missing_cards' } };
+    }
+    const position = ctx.position;
+    const myStack = ctx.myStack || 0;
+    const bb = ctx.bb || 1;
+    const toCall = ctx.toCall || 0;
+    const pot = ctx.pot || 0;
+    const stackBB = myStack / bb;
+    const stackDepth = getStackDepth(stackBB);
+    const rawStrength = preflopStrength(card1, card2);
+    const posMult = getPositionMultiplier(position);
+    const blockerScore = getBlockerScore(card1, card2);
+    const blockerReason = getBlockerReason(card1, card2);
+    const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
+
+    const numActive = ctx.numActive || 8;
+    const er = equityRealization(card1, card2, position, numActive);
+    const strength = Math.min(1, rawStrength * er);
+
+    const playersLeft = ctx.playersLeft || 8;
+    const itmCount = ctx.itmCount || 3;
+    const bubbleFactor = calculateBubbleFactor(stackBB, ctx.opponentStackBB || stackBB, playersLeft, itmCount, 'steep');
+    const icmPressure = getICMPressure(playersLeft, itmCount);
+    const payoutStructure = getPayoutStructure(playersLeft, itmCount);
+
+    const contextType = detectContext(ctx);
+    const numLimpers = ctx.numLimpers !== undefined ? ctx.numLimpers : 0;
+
+    const oppId = ctx.opponentId || null;
+    const oppType = oppId ? getOpponentType(oppId) : 'unknown';
+    const foldToResteal = oppId ? getShrunk(oppId, 'foldToResteal') : { value: PRIORS.foldToResteal, confidence: 0, sampleSize: 0 };
+    const foldTo4Bet = oppId ? getShrunk(oppId, 'foldTo4Bet') : { value: PRIORS.foldTo4Bet, confidence: 0, sampleSize: 0 };
+    const foldToSteal = oppId ? getShrunk(oppId, 'foldBbToStealBtn') : { value: PRIORS.foldBbToStealBtn, confidence: 0, sampleSize: 0 };
+
+    const diagnostics = {
+      source: 'pro',
+      botType: botType,
+      decisionBranch: contextType,
+      contextType: contextType,
+      strength: strength,
+      strengthRaw: rawStrength,
+      equityRealization: er,
+      equityRaw: rawStrength,
+      equityRealized: strength,
+      equityVsRange: null,
+      stackDepth: stackDepth,
+      position: position,
+      positionModifier: posMult,
+      effectiveStackBB: stackBB,
+      bubbleFactor: bubbleFactor,
+      icmPressure: icmPressure,
+      payoutStructure: payoutStructure,
+      blockerScore: blockerScore,
+      blockerReason: blockerReason,
+      multiwayCount: numActive,
+      opponentType: oppType,
+      exploitActive: false,
+      statUsed: null,
+      statKey: null,
+      statConfidence: 0,
+      statEffect: 0,
+      statSampleSize: 0,
+      hasAnte: hasAnte,
+      frequency: 1.0,
+      randomRoll: null,
+      threshold: null,
+      sizingReason: '',
+      limpingReason: '',
+      metaLevel: 1,
+      adaptationDetected: false,
+      numLimpers: numLimpers,
+      raiserPosition: ctx.raiserPosition || null,
+      isRealRaise: (ctx.currentBet || 0) > bb,
+      potOdds: null,
+      foldEquity: null,
+      spr: null,
+      evFold: 0,
+      evCall: 0,
+      evRaise: 0,
+      reason: ''
+    };
+
+    // ===== FACING ALL-IN =====
+    if (contextType === 'facing_allin_preflop') {
+      let callThreshold = 0.55 + (bubbleFactor - 1) * profile.icmSensitivity * 0.15;
+      callThreshold = Math.min(0.95, callThreshold);
+      if (icmPressure === 'bubble' && stackBB > 15 && stackBB < 35) callThreshold += 0.10;
+      if (icmPressure === 'final_table' && stackBB > 15 && stackBB < 35) callThreshold += 0.08;
+      // Blocker helps against shoves on bubble (A5s better than 98s)
+      if (icmPressure !== 'none') callThreshold -= blockerScore * 0.5;
+      diagnostics.threshold = callThreshold;
+      diagnostics.reason = `facing allin: need ${(callThreshold*100).toFixed(0)}% (BF=${bubbleFactor.toFixed(2)}, ${icmPressure})`;
+      if (strength > callThreshold) {
+        diagnostics.reason += ' | call';
+        return { action: 'call', amount: Math.min(toCall, myStack), diagnostics };
+      }
+      diagnostics.reason += ' | fold';
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // ===== SHORT STACK PUSH/FOLD (unopened only) =====
+    if (contextType === 'unopened' && stackBB <= 20 && toCall <= bb) {
+      const table = NASH_PUSH_TABLE[position] || NASH_PUSH_TABLE.BTN;
+      let pushFreq = 0.10;
+      for (const s of [5, 8, 10, 12, 15, 20, 25]) {
+        if (stackBB <= s) { pushFreq = table[s] || pushFreq; break; }
+      }
+      if (hasAnte) pushFreq *= 1.08;
+      if (icmPressure === 'bubble' && stackBB < 15) pushFreq *= 1.15;
+      if (icmPressure === 'final_table' && stackBB < 15) pushFreq *= 1.10;
+      if (icmPressure === 'bubble' && stackBB >= 15 && stackBB <= 30) pushFreq *= 0.78;
+      if (icmPressure === 'final_table' && stackBB >= 15 && stackBB <= 30) pushFreq *= 0.82;
+      if (profile.aggression > 0.85) pushFreq *= 1.10;
+      if (profile.aggression < 0.5) pushFreq *= 0.90;
+      pushFreq = Math.min(1, pushFreq);
+
+      const roll = Math.random();
+      diagnostics.frequency = pushFreq;
+      diagnostics.randomRoll = roll;
+      diagnostics.threshold = 'nash_push';
+      diagnostics.reason = `Nash push ${position} ${stackBB.toFixed(0)}bb freq=${pushFreq.toFixed(2)} ${icmPressure}`;
+      if (roll < pushFreq && strength > 0.28) {
+        diagnostics.reason += ' | ALL-IN';
+        return { action: 'allin', amount: myStack, diagnostics };
+      }
+      diagnostics.reason += ' | fold';
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // ===== BB CHECK OPTION =====
+    if (contextType === 'bb_check_option') {
+      // BB has no call to make. Only check (no fold is allowed).
+      // Consider iso-raise with strong hands over limpers - handled in bb_vs_limp.
+      diagnostics.threshold = 'check';
+      diagnostics.reason = 'BB check option (no raise, no call needed)';
+      return { action: 'check', amount: 0, diagnostics };
+    }
+
+    // ===== BB VS LIMP =====
+    if (contextType === 'bb_vs_limp') {
+      const limpers = Math.max(1, numLimpers);
+      // Iso-raise threshold scales with position and limpers
+      let isoThreshold = 0.55;
+      if (hasAnte) isoThreshold -= 0.03;
+      if (limpers >= 2) isoThreshold -= 0.03;
+      if (profile.aggression > 0.85) isoThreshold -= 0.08;
+      if (profile.aggression < 0.5) isoThreshold += 0.05;
+      isoThreshold = Math.max(0.35, Math.min(0.80, isoThreshold));
+
+      diagnostics.threshold = isoThreshold;
+      diagnostics.reason = `BB vs ${limpers} limp(s) thr=${isoThreshold.toFixed(2)}`;
+
+      if (strength > isoThreshold) {
+        const sizeBB = getIsoSizeBB(ctx, limpers);
+        diagnostics.sizingReason = `iso-raise ${limpers} limper(s) = ${sizeBB.toFixed(1)}bb`;
+        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+      }
+      diagnostics.reason += ' | check';
+      return { action: 'check', amount: 0, diagnostics };
+    }
+
+    // ===== FACING LIMP (not BB) =====
+    if (contextType === 'facing_limp') {
+      const limpers = Math.max(1, numLimpers);
+      // Iso-raise threshold: positive aggression profiles iso wider
+      let isoThreshold = 0.42;
+      if (position === 'SB') isoThreshold += 0.06;
+      if (position === 'BTN' || position === 'CO') isoThreshold -= 0.05;
+      if (hasAnte) isoThreshold -= 0.02;
+      if (limpers >= 2) isoThreshold -= 0.03;
+      if (profile.aggression > 0.85) isoThreshold -= 0.06;
+      if (profile.aggression < 0.5) isoThreshold += 0.04;
+      isoThreshold = Math.max(0.25, Math.min(0.72, isoThreshold));
+
+      diagnostics.threshold = isoThreshold;
+      diagnostics.reason = `iso-raise vs ${limpers} limper(s) thr=${isoThreshold.toFixed(2)}`;
+
+      if (strength > isoThreshold) {
+        const sizeBB = getIsoSizeBB(ctx, limpers);
+        diagnostics.sizingReason = `iso-raise ${limpers} limper(s) = ${sizeBB.toFixed(1)}bb`;
+        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+      }
+      // Small blind can complete if strength is decent
+      if (position === 'SB' && strength > 0.30 && toCall <= bb) {
+        diagnostics.reason += ' | SB complete';
+        diagnostics.limpingReason = 'pot_odds_complete';
+        return { action: 'call', amount: toCall, diagnostics };
+      }
+      diagnostics.reason += ' | fold';
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // ===== FACING RAISE (2-bet) =====
+    if (contextType === 'facing_raise') {
+      const openPos = ctx.raiserPosition || 'BTN';
+      const openerSizeBB = (ctx.currentBet || bb) / bb;
+      const isIP = isInPosition(position, openPos);
+
+      // Three-bet decision
+      let threeBetThreshold = 0.68;
+      let threeBetFreqIfBlocker = 0.25;
+      if (oppType === 'nit') { threeBetThreshold = 0.75; threeBetFreqIfBlocker = 0.15; }
+      if (oppType === 'maniac') { threeBetThreshold = 0.60; threeBetFreqIfBlocker = 0.35; }
+      if (oppType === 'lag') { threeBetThreshold = 0.65; threeBetFreqIfBlocker = 0.30; }
+
+      // Stat-based: foldToResteal confidence
+      if (foldToResteal.confidence >= STAT_CONFIDENCE.IGNORE) {
+        const statAdj = applyStatModifier(threeBetThreshold, foldToResteal, 'fold_to_aggr', 0.15);
+        threeBetThreshold = statAdj.value;
+        diagnostics.statUsed = 'foldToResteal';
+        diagnostics.statConfidence = foldToResteal.confidence;
+        diagnostics.statEffect = statAdj.effect;
+        diagnostics.statSampleSize = foldToResteal.sampleSize;
+        if (statAdj.level !== 'ignored') diagnostics.exploitActive = true;
+      }
+
+      const roll = Math.random();
+      if (strength > threeBetThreshold) {
+        const sizeBB = getThreeBetSizeBB(ctx, openerSizeBB, isIP);
+        diagnostics.threshold = threeBetThreshold;
+        diagnostics.frequency = 1.0;
+        diagnostics.randomRoll = roll;
+        diagnostics.sizingReason = `3bet ${isIP ? 'IP' : 'OOP'} x${(sizeBB/openerSizeBB).toFixed(1)}`;
+        diagnostics.reason = `3bet vs ${openPos} strength=${strength.toFixed(2)}>thr=${threeBetThreshold.toFixed(2)}`;
+        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+      }
+      if (blockerScore > 0.08 && roll < threeBetFreqIfBlocker) {
+        const sizeBB = getThreeBetSizeBB(ctx, openerSizeBB, isIP);
+        diagnostics.threshold = 'blocker_bluff';
+        diagnostics.frequency = threeBetFreqIfBlocker;
+        diagnostics.randomRoll = roll;
+        diagnostics.sizingReason = `blocker bluff 3bet`;
+        diagnostics.reason = `3bet blocker bluff (score=${blockerScore.toFixed(2)}) vs ${openPos}`;
+        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+      }
+
+      // Call defense thresholds
+      let callThreshold = 0.40;
+      if (position === 'BB') {
+        if (openPos === 'UTG' || openPos === 'UTG1') callThreshold = 0.48;
+        else if (openPos === 'LJ' || openPos === 'HJ') callThreshold = 0.40;
+        else if (openPos === 'CO') callThreshold = 0.32;
+        else callThreshold = 0.28;
+        if (hasAnte) callThreshold -= 0.05;
+      } else if (position === 'SB') {
+        // SB strictly 3bet or fold (except rare balance)
+        callThreshold = 0.99;
+      } else {
+        const potOdds = toCall / (pot + toCall);
+        callThreshold = Math.max(0.40, potOdds * 1.4);
+        // Late position: can call wider vs earlier opener (smaller relative weakness)
+        if (isIP) callThreshold -= 0.03;
+      }
+
+      // ICM adjustments
+      if (icmPressure === 'bubble' && stackBB > 15 && stackBB < 35) callThreshold += 0.08;
+      if (icmPressure === 'final_table' && stackBB > 15 && stackBB < 35) callThreshold += 0.06;
+
+      // Multiway: tighten
+      if (numActive < 4) callThreshold += 0.03;
+
+      diagnostics.threshold = callThreshold;
+      diagnostics.potOdds = toCall / (pot + toCall);
+
+      if (strength > callThreshold) {
+        diagnostics.reason = `call vs ${openPos} thr=${callThreshold.toFixed(2)}${isIP ? ' (IP)' : ' (OOP)'}`;
+        return { action: 'call', amount: Math.min(toCall, myStack), diagnostics };
+      }
+      diagnostics.reason = `fold vs ${openPos} thr=${callThreshold.toFixed(2)}`;
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // ===== FACING 3-BET =====
+    if (contextType === 'facing_3bet') {
+      let fourBetThreshold = 0.82;
+      let fourBetFreq = 0.65;
+      if (oppType === 'maniac') { fourBetThreshold = 0.72; fourBetFreq = 0.80; }
+      if (oppType === 'nit') { fourBetThreshold = 0.88; fourBetFreq = 0.50; }
+
+      if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MICRO) {
+        if (foldTo4Bet.value > 0.60) {
+          fourBetThreshold = Math.max(0.65, fourBetThreshold - 0.08);
+          fourBetFreq = Math.max(fourBetFreq, 0.80);
+          diagnostics.statUsed = 'foldTo4Bet';
+          diagnostics.statConfidence = foldTo4Bet.confidence;
+          diagnostics.statEffect = -0.08;
+          diagnostics.exploitActive = true;
+        } else if (foldTo4Bet.value < 0.30) {
+          fourBetThreshold = Math.min(0.92, fourBetThreshold + 0.05);
+          fourBetFreq = Math.min(fourBetFreq, 0.40);
+          diagnostics.statUsed = 'foldTo4Bet';
+          diagnostics.statConfidence = foldTo4Bet.confidence;
+          diagnostics.statEffect = 0.05;
+          diagnostics.exploitActive = true;
+        }
+      }
+
+      const roll = Math.random();
+      diagnostics.threshold = fourBetThreshold;
+      diagnostics.frequency = fourBetFreq;
+      diagnostics.randomRoll = roll;
+
+      if (strength > fourBetThreshold && roll < fourBetFreq && stackBB > 15) {
+        const sizeBB = (ctx.currentBet || bb * 8) * 2.2 / bb;
+        diagnostics.sizingReason = `4bet ×2.2 of 3bet`;
+        diagnostics.reason = `4bet vs 3bet thr=${fourBetThreshold.toFixed(2)}`;
+        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+      }
+      // IP flat with strong hands
+      const isIP = isInPosition(position, ctx.raiserPosition || 'BTN');
+      if (isIP && strength > 0.55 && stackBB > 25) {
+        diagnostics.reason = `flat IP vs 3bet`;
+        return { action: 'call', amount: Math.min(toCall, myStack), diagnostics };
+      }
+      diagnostics.reason = `fold vs 3bet`;
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // ===== FACING 4-BET =====
+    if (contextType === 'facing_4bet') {
+      let fiveBetThreshold = 0.88;
+      if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MICRO && foldTo4Bet.value > 0.60) {
+        fiveBetThreshold = 0.80;
+        diagnostics.statUsed = 'foldTo4Bet';
+        diagnostics.statConfidence = foldTo4Bet.confidence;
+        diagnostics.statEffect = -0.08;
+        diagnostics.exploitActive = true;
+      }
+      diagnostics.threshold = fiveBetThreshold;
+      if (strength > fiveBetThreshold && stackBB > 20) {
+        diagnostics.reason = `5bet allin vs 4bet thr=${fiveBetThreshold.toFixed(2)}`;
+        return { action: 'allin', amount: myStack, diagnostics };
+      }
+      if (strength > 0.75 && stackBB < 20) {
+        diagnostics.reason = `allin vs 4bet short`;
+        return { action: 'allin', amount: myStack, diagnostics };
+      }
+      diagnostics.reason = `fold vs 4bet`;
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // ===== UNOPENED (RFI) =====
+    const baseThreshold = BASE_OPEN_THRESHOLDS[position] || 0.50;
+    // We use base threshold directly now - the base is already position-aware
+    let openThreshold = baseThreshold;
+    // Aggression profile
+    openThreshold += (0.68 - profile.aggression) * 0.12;
+    // Ante: open slightly wider (uneven by position)
+    if (hasAnte) {
+      if (position === 'UTG' || position === 'UTG1') openThreshold -= 0.02;
+      else if (position === 'BTN' || position === 'SB') openThreshold -= 0.07;
+      else openThreshold -= 0.04;
+    }
+    // ICM
+    if (icmPressure === 'bubble') {
+      if (stackBB > 30) openThreshold -= 0.08;
+      else if (stackBB > 15) openThreshold += 0.10;
+    }
+    if (icmPressure === 'final_table') {
+      if (stackBB > 30) openThreshold -= 0.10;
+      else if (stackBB > 15) openThreshold += 0.12;
+    }
+    // Exploit vs opener's steal stats (if opener exists in future streets) - not directly applicable here.
+    openThreshold = Math.max(0.10, Math.min(0.95, openThreshold));
+
+    // SB: mixed strategy - raise / limp / fold (GTO limp present)
+    if (position === 'SB') {
+      // Limp frequency scales with profile, ante, and BB tendencies
+      let limpFreq = profile.limpHabit * (hasAnte ? 1.6 : 1.0);
+      // If BB is very aggressive 3-bettor, don't limp as much
+      if (foldToResteal.confidence >= STAT_CONFIDENCE.IGNORE && foldToResteal.value > 0.55) {
+        limpFreq *= 0.6; // BB doesn't fold much, don't open up by limping
+      }
+      if (icmPressure === 'bubble') limpFreq *= 0.5;
+      // SB limp freq caps at 0.30 (don't overdo it)
+      limpFreq = Math.min(0.30, limpFreq);
+
+      const roll = Math.random();
+      diagnostics.frequency = 1.0;
+      diagnostics.threshold = openThreshold;
+      diagnostics.randomRoll = roll;
+
+      if (strength > openThreshold) {
+        // Some very strong hands limp for balance (rare, only deep stacks with antes)
+        const balanceLimpChance = hasAnte && stackBB > 60 ? 0.10 : 0.02;
+        if (roll < balanceLimpChance && strength > 0.85) {
+          diagnostics.reason = 'SB balance limp (strong)';
+          diagnostics.limpingReason = 'balance_limp';
+          return { action: 'call', amount: Math.min(bb, myStack), diagnostics };
+        }
+        const sizeBB = getOpenSizeBB(ctx);
+        diagnostics.sizingReason = `SB open ${sizeBB.toFixed(1)}bb`;
+        diagnostics.reason = `SB RFI thr=${openThreshold.toFixed(2)}`;
+        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+      }
+      // Speculative limp for medium hands
+      if (strength > 0.32 && roll < limpFreq) {
+        diagnostics.reason = `SB speculative limp (strength=${strength.toFixed(2)})`;
+        diagnostics.limpingReason = 'pot_odds_limp';
+        return { action: 'call', amount: Math.min(bb, myStack), diagnostics };
+      }
+      diagnostics.reason = `SB fold thr=${openThreshold.toFixed(2)}`;
+      return { action: 'fold', amount: 0, diagnostics };
+    }
+
+    // BTN: mixed limp at mid-short stacks (rare but part of GTO)
+    if (position === 'BTN' && stackBB >= 10 && stackBB <= 30) {
+      const roll = Math.random();
+      if (strength > openThreshold * 0.85 && strength < openThreshold * 1.05 && roll < 0.15) {
+        diagnostics.reason = 'BTN mixed limp (balance)';
+        diagnostics.limpingReason = 'balance_limp_btn';
+        return { action: 'call', amount: Math.min(bb, myStack), diagnostics };
+      }
+    }
+
+    // Standard RFI
+    diagnostics.threshold = openThreshold;
+    diagnostics.reason = `RFI ${position} thr=${openThreshold.toFixed(2)}`;
+    if (strength > openThreshold) {
+      const sizeBB = getOpenSizeBB(ctx);
+      diagnostics.sizingReason = `open ${sizeBB.toFixed(1)}bb ${hasAnte ? '(ante)' : ''}`;
+      return { action: 'raise', amount: Math.min(myStack, Math.round(bb * sizeBB)), diagnostics };
+    }
+    return { action: 'fold', amount: 0, diagnostics };
+  }
+
+  // ========================================================================
+  // BLOCK 7 — PRO_GTO: Baseline, balanced, mixed frequencies
   // ========================================================================
 
   const PRO_GTO = {
@@ -377,231 +915,14 @@
 
     decidePreflop: function(ctx) {
       const profile = PROFILES.PRO_GTO;
-      const card1 = ctx.card1, card2 = ctx.card2;
-      const position = ctx.position;
-      const myStack = ctx.myStack;
-      const bb = ctx.bb;
-      const toCall = ctx.toCall || 0;
-      const pot = ctx.pot || 0;
-      const stackBB = myStack / bb;
-      const stackDepth = getStackDepth(stackBB);
-      const rawStrength = preflopStrength(card1, card2);
-      const posMult = getPositionMultiplier(position);
-      const blockerScore = getBlockerScore(card1, card2);
-      const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
-      const er = equityRealization(card1, card2, position, ctx.numActive || 8);
-      const strength = Math.min(1, rawStrength * er);
-
-      const playersLeft = ctx.playersLeft || 8;
-      const itmCount = ctx.itmCount || 3;
-      const bubbleFactor = calculateBubbleFactor(stackBB, ctx.opponentStackBB || stackBB, playersLeft, itmCount);
-      const icmPressure = getICMPressure(playersLeft, itmCount);
-
-      const context = detectContext(ctx);
-
-      const diagnostics = {
-        source: 'pro', botType: 'PRO_GTO',
-        strength: strength, strengthRaw: rawStrength, equityRealization: er,
-        stackDepth, position, positionModifier: posMult, effectiveStackBB: stackBB,
-        bubbleFactor, icmPressure, blockerScore,
-        multiwayCount: ctx.numActive || 8,
-        contextType: context,
-        raiserPosition: ctx.raiserPosition || null,
-        numLimpers: ctx.numLimpers || 0,
-        isRealRaise: !!ctx.isRealRaise,
-        opponentType: 'unknown', exploitActive: false,
-        statUsed: null, statConfidence: 0, statEffect: 0,
-        frequency: 1.0, hasAnte, reason: ''
-      };
-
-      // ===== SHORT STACK PUSH/FOLD (only unopened) =====
-      if (stackBB <= 20 && context === 'unopened') {
-        const table = NASH_PUSH_TABLE[position] || NASH_PUSH_TABLE.BTN;
-        let pushFreq = 0.10;
-        for (const stack of [5, 8, 10, 12, 15, 20, 25]) {
-          if (stackBB <= stack) { pushFreq = table[stack] || pushFreq; break; }
-        }
-        if (hasAnte) pushFreq *= 1.08;
-        if (icmPressure === 'bubble' && stackBB < 15) pushFreq *= 1.15;
-        if (icmPressure === 'final_table') pushFreq *= 1.05;
-        const roll = Math.random();
-        diagnostics.frequency = pushFreq;
-        diagnostics.randomRoll = roll;
-        diagnostics.threshold = 'nash_push';
-        diagnostics.reason = `Nash push ${position} ${stackBB.toFixed(0)}bb freq=${pushFreq.toFixed(2)}`;
-        if (roll < pushFreq && strength > 0.30) return { action: 'allin', amount: myStack, diagnostics };
-        if (strength < 0.15) return { action: 'fold', amount: 0, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING ALL-IN =====
-      if (context === 'facing_allin_preflop') {
-        const requiredEquity = bubbleFactor / (bubbleFactor + 1);
-        const callThreshold = adjustThresholdForICM(0.55, bubbleFactor, profile.icmSensitivity);
-        diagnostics.requiredEquity = requiredEquity;
-        diagnostics.threshold = callThreshold;
-        diagnostics.reason = `facing allin need ${(requiredEquity * 100).toFixed(0)}% BF=${bubbleFactor.toFixed(2)}`;
-        if (strength > callThreshold || (strength > 0.70 && stackBB < 15)) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== BB CHECK OPTION =====
-      if (context === 'bb_check_option') {
-        // BB has no call to make. If no real raise, check and see the flop.
-        // Only consider raising if hand is premium and there were multiple limpers.
-        const limpers = ctx.numLimpers || 0;
-        if (strength > 0.80 && limpers >= 1) {
-          diagnostics.threshold = 0.80;
-          diagnostics.reason = `BB iso-raise premium over ${limpers} limper(s)`;
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 4.0 : 4.5) + limpers * bb)), diagnostics };
-        }
-        diagnostics.threshold = 'check';
-        diagnostics.reason = 'BB check option, no real raise';
-        return { action: 'check', amount: 0, diagnostics };
-      }
-
-      // ===== FACING LIMP =====
-      if (context === 'facing_limp') {
-        const limpers = ctx.numLimpers || 1;
-        // Isolation thresholds — raise size scales with limpers
-        let isoThreshold = 0.42;
-        if (position === 'SB' || position === 'BB') isoThreshold += 0.06;
-        if (position === 'BTN' || position === 'CO') isoThreshold -= 0.04;
-        if (hasAnte) isoThreshold -= 0.02;
-        if (limpers >= 2) isoThreshold -= 0.03;
-        isoThreshold = Math.max(0.25, Math.min(0.75, isoThreshold));
-
-        diagnostics.threshold = isoThreshold;
-        diagnostics.reason = `iso-raise vs ${limpers} limper(s) thr=${isoThreshold.toFixed(2)}`;
-
-        if (strength > isoThreshold) {
-          const isoSize = Math.round(bb * (2.5 + 0.7 * limpers) + (hasAnte ? bb : 0));
-          return { action: 'raise', amount: Math.min(myStack, isoSize), diagnostics };
-        }
-        // Complete small blind or check option calls are handled elsewhere; here just fold
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING RAISE (2-bet) =====
-      if (context === 'facing_raise') {
-        if (position === 'BB') {
-          const openPos = ctx.raiserPosition || 'BTN';
-          let defendThreshold = 0.32;
-          if (openPos === 'UTG' || openPos === 'UTG1') defendThreshold = 0.48;
-          else if (openPos === 'LJ' || openPos === 'HJ') defendThreshold = 0.42;
-          else if (openPos === 'CO') defendThreshold = 0.34;
-          else defendThreshold = 0.30;
-          if (hasAnte) defendThreshold -= 0.04;
-          if (icmPressure === 'bubble' && stackBB > 15 && stackBB < 35) defendThreshold += 0.08;
-          diagnostics.threshold = defendThreshold;
-          diagnostics.reason = `BB defend vs ${openPos} thr=${defendThreshold.toFixed(2)}`;
-          if (strength > 0.72 && Math.random() < 0.45) {
-            diagnostics.reason += ' | 3bet';
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 4.2)), diagnostics };
-          }
-          if (strength > defendThreshold) return { action: 'call', amount: toCall, diagnostics };
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        if (position === 'SB') {
-          let threeBetThreshold = 0.68;
-          if (icmPressure === 'bubble') threeBetThreshold += 0.08;
-          diagnostics.threshold = threeBetThreshold;
-          diagnostics.reason = `SB vs open 3bet thr=${threeBetThreshold.toFixed(2)}`;
-          if (strength > threeBetThreshold) return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 3.6)), diagnostics };
-          if (blockerScore > 0.10 && Math.random() < 0.20) {
-            diagnostics.reason = 'SB blocker bluff 3bet';
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 3.6)), diagnostics };
-          }
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        // Other positions: call or fold based on pot odds and ICM
-        const potOdds = toCall / (pot + toCall);
-        const callThreshold = Math.max(0.42, potOdds * 1.5);
-        diagnostics.threshold = callThreshold;
-        diagnostics.potOdds = potOdds;
-        diagnostics.reason = `facing raise potOdds=${(potOdds * 100).toFixed(0)}%`;
-        if (strength > callThreshold) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 3-BET =====
-      if (context === 'facing_3bet') {
-        // 4-bet or fold (with some flatting in position)
-        const fourBetThreshold = 0.80;
-        const flatThreshold = 0.55;
-        diagnostics.threshold = fourBetThreshold;
-        diagnostics.reason = 'facing 3bet: 4bet or fold/flat';
-
-        if (strength > fourBetThreshold && stackBB > 15) {
-          diagnostics.reason += ' | 4bet';
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 9)), diagnostics };
-        }
-        if ((position === 'BTN' || position === 'CO') && strength > flatThreshold && stackBB > 25) {
-          diagnostics.reason += ' | in-position flat';
-          return { action: 'call', amount: toCall, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 4-BET =====
-      if (context === 'facing_4bet') {
-        // Very tight — only AA, KK, and sometimes QQ/AKs
-        const fiveBetThreshold = 0.88;
-        diagnostics.threshold = fiveBetThreshold;
-        diagnostics.reason = `facing 4bet thr=${fiveBetThreshold.toFixed(2)}`;
-        if (strength > fiveBetThreshold && stackBB > 20) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 22)), diagnostics };
-        }
-        if (strength > 0.78 && stackBB < 20) return { action: 'allin', amount: myStack, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== UNOPENED (RFI) =====
-      const baseThreshold = BASE_OPEN_THRESHOLDS[position] || 0.50;
-      let openThreshold = baseThreshold / posMult;
-      if (hasAnte) openThreshold *= 0.92;
-      if (icmPressure === 'bubble') {
-        if (stackBB > 30) openThreshold *= 0.90;
-        else if (stackBB > 15) openThreshold *= 1.12;
-      }
-      if (icmPressure === 'final_table') {
-        if (stackBB > 30) openThreshold *= 0.88;
-        else if (stackBB > 15) openThreshold *= 1.15;
-      }
-      openThreshold = Math.min(0.95, Math.max(0.10, openThreshold));
-
-      if (position === 'SB') {
-        const limpFreq = profile.limpHabit * (hasAnte ? 1.3 : 1.0);
-        const roll = Math.random();
-        diagnostics.frequency = 1.0; diagnostics.limpFreq = limpFreq; diagnostics.threshold = openThreshold;
-        diagnostics.reason = `SB RFI thr=${openThreshold.toFixed(2)} limp=${limpFreq.toFixed(2)}`;
-        if (strength > openThreshold) {
-          if (roll < limpFreq && strength > 0.75) {
-            diagnostics.reason = 'SB balance limp';
-            return { action: 'call', amount: bb, diagnostics };
-          }
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.2 : 2.5))), diagnostics };
-        }
-        if (strength > 0.35 && roll < limpFreq * 1.5) {
-          diagnostics.reason = 'SB speculative limp';
-          return { action: 'call', amount: bb, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      diagnostics.threshold = openThreshold;
-      diagnostics.reason = `RFI ${position} thr=${openThreshold.toFixed(2)}`;
-      if (strength > openThreshold) {
-        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.0 : 2.5))), diagnostics };
-      }
-      return { action: 'fold', amount: 0, diagnostics };
+      const result = decidePreflopCore('PRO_GTO', ctx, profile);
+      // GTO: minimal exploit, keep as-is
+      return result;
     }
   };
 
   // ========================================================================
-  // BLOCK 5 — PRO_SOLVER: Aggressive, Blocker-Aware, Uses Shrunk Stats
+  // BLOCK 8 — PRO_SOLVER: Aggressive, blocker-aware, fast exploit
   // ========================================================================
 
   const PRO_SOLVER = {
@@ -610,286 +931,17 @@
 
     decidePreflop: function(ctx) {
       const profile = PROFILES.PRO_SOLVER;
-      const card1 = ctx.card1, card2 = ctx.card2;
-      const position = ctx.position;
-      const myStack = ctx.myStack;
-      const bb = ctx.bb;
-      const toCall = ctx.toCall || 0;
-      const pot = ctx.pot || 0;
-      const stackBB = myStack / bb;
-      const stackDepth = getStackDepth(stackBB);
-      const rawStrength = preflopStrength(card1, card2);
-      const posMult = getPositionMultiplier(position);
-      const blockerScore = getBlockerScore(card1, card2);
-      const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
-      const er = equityRealization(card1, card2, position, ctx.numActive || 8);
-      const strength = Math.min(1, rawStrength * er);
-
-      const playersLeft = ctx.playersLeft || 8;
-      const itmCount = ctx.itmCount || 3;
-      const bubbleFactor = calculateBubbleFactor(stackBB, ctx.opponentStackBB || stackBB, playersLeft, itmCount);
-      const icmPressure = getICMPressure(playersLeft, itmCount);
-      const context = detectContext(ctx);
-
-      const oppId = ctx.opponentId || null;
-      const oppType = oppId ? getOpponentType(oppId) : 'unknown';
-      const foldToResteal = oppId ? getShrunk(oppId, 'foldToResteal') : { value: PRIORS.foldToResteal, confidence: 0 };
-      const foldTo4Bet = oppId ? getShrunk(oppId, 'foldTo4Bet') : { value: PRIORS.foldTo4Bet, confidence: 0 };
-      const foldToSteal = oppId ? getShrunk(oppId, 'foldBbToStealBtn') : { value: PRIORS.foldBbToStealBtn, confidence: 0 };
-
-      const diagnostics = {
-        source: 'pro', botType: 'PRO_SOLVER',
-        strength, strengthRaw: rawStrength, equityRealization: er,
-        stackDepth, position, positionModifier: posMult, effectiveStackBB: stackBB,
-        bubbleFactor, icmPressure, blockerScore,
-        multiwayCount: ctx.numActive || 8,
-        contextType: context,
-        raiserPosition: ctx.raiserPosition || null,
-        numLimpers: ctx.numLimpers || 0,
-        isRealRaise: !!ctx.isRealRaise,
-        opponentType: oppType, exploitActive: false,
-        statUsed: null, statConfidence: 0, statEffect: 0,
-        hasAnte, frequency: 1.0, reason: ''
-      };
-
-      // ===== SHORT STACK PUSH/FOLD =====
-      if (stackBB <= 20 && context === 'unopened') {
-        const table = NASH_PUSH_TABLE[position] || NASH_PUSH_TABLE.BTN;
-        let pushFreq = 0.10;
-        for (const stack of [5, 8, 10, 12, 15, 20, 25]) {
-          if (stackBB <= stack) { pushFreq = table[stack] || pushFreq; break; }
-        }
-        pushFreq *= 1.08;
-        if (hasAnte) pushFreq *= 1.06;
-        if (icmPressure === 'bubble' && stackBB < 15) pushFreq *= 1.10;
-        const roll = Math.random();
-        diagnostics.frequency = pushFreq; diagnostics.randomRoll = roll;
-        diagnostics.threshold = 'nash_push_aggressive';
-        diagnostics.reason = `Nash push solver freq=${pushFreq.toFixed(2)}`;
-        if (roll < pushFreq && strength > 0.28) return { action: 'allin', amount: myStack, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
+      const result = decidePreflopCore('PRO_SOLVER', ctx, profile);
+      // Solver: faster exploit, more bluff 3bet with blockers, slightly wider opens
+      if (result.diagnostics && result.diagnostics.decisionBranch === 'facing_raise') {
+        // Handled in core (3bet freq uses profile.aggression already)
       }
-
-      // ===== FACING ALL-IN =====
-      if (context === 'facing_allin_preflop') {
-        const callThreshold = adjustThresholdForICM(0.52, bubbleFactor, profile.icmSensitivity);
-        diagnostics.threshold = callThreshold;
-        diagnostics.reason = `facing allin BF=${bubbleFactor.toFixed(2)}`;
-        if (strength > callThreshold || (blockerScore > 0.10 && strength > 0.45 && stackBB < 20))
-          return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== BB CHECK OPTION =====
-      if (context === 'bb_check_option') {
-        const limpers = ctx.numLimpers || 0;
-        // Aggressive iso-raise with strong hands over limpers
-        if (strength > 0.68 && limpers >= 1) {
-          diagnostics.threshold = 0.68;
-          diagnostics.reason = `BB iso-raise over ${limpers} limper(s)`;
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (3.5 + limpers))), diagnostics };
-        }
-        diagnostics.threshold = 'check';
-        diagnostics.reason = 'BB check option, no raise';
-        return { action: 'check', amount: 0, diagnostics };
-      }
-
-      // ===== FACING LIMP =====
-      if (context === 'facing_limp') {
-        const limpers = ctx.numLimpers || 1;
-        let isoThreshold = 0.36;
-        if (position === 'SB' || position === 'BB') isoThreshold += 0.05;
-        if (hasAnte) isoThreshold -= 0.02;
-        if (limpers >= 2) isoThreshold -= 0.04;
-        isoThreshold = Math.max(0.22, Math.min(0.70, isoThreshold));
-
-        diagnostics.threshold = isoThreshold;
-        diagnostics.reason = `solver iso-raise vs ${limpers} limper(s) thr=${isoThreshold.toFixed(2)}`;
-
-        if (strength > isoThreshold) {
-          const isoSize = Math.round(bb * (3.0 + 0.8 * limpers) + (hasAnte ? bb : 0));
-          return { action: 'raise', amount: Math.min(myStack, isoSize), diagnostics };
-        }
-        if (strength > 0.30 && blockerScore > 0.05) {
-          diagnostics.reason += ' | blocker overcall';
-          return { action: 'call', amount: toCall, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING RAISE =====
-      if (context === 'facing_raise') {
-        if (position === 'BB') {
-          const openPos = ctx.raiserPosition || 'BTN';
-          let defendThreshold = 0.30;
-          if (openPos === 'UTG' || openPos === 'UTG1') defendThreshold = 0.46;
-          else if (openPos === 'LJ' || openPos === 'HJ') defendThreshold = 0.40;
-          else if (openPos === 'CO') defendThreshold = 0.32;
-          else defendThreshold = 0.28;
-
-          // Stat-based adjustment: over-folding opponent → 3bet wider
-          let statAdj = { value: defendThreshold, effect: 0, level: 'ignored' };
-          let threeBetWider = false;
-          if (foldToResteal.confidence >= STAT_CONFIDENCE.MICRO && foldToResteal.value > 0.58) {
-            statAdj = applyStatModifier(defendThreshold, foldToResteal, 'fold_to_aggr', 0.15);
-            threeBetWider = true;
-            diagnostics.statUsed = 'foldToResteal';
-            diagnostics.statConfidence = foldToResteal.confidence;
-            diagnostics.statEffect = statAdj.effect;
-            diagnostics.exploitActive = statAdj.level !== 'ignored';
-          }
-          defendThreshold = statAdj.value;
-
-          if (strength > 0.65 || (blockerScore > 0.08 && Math.random() < (threeBetWider ? 0.55 : 0.32))) {
-            diagnostics.threshold = 0.65;
-            diagnostics.reason = `BB 3bet solver blocker=${blockerScore.toFixed(2)} exploitable=${threeBetWider}`;
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 4.2)), diagnostics };
-          }
-          diagnostics.threshold = defendThreshold;
-          diagnostics.reason = `BB defend vs ${openPos} solver thr=${defendThreshold.toFixed(2)}`;
-          if (strength > defendThreshold) return { action: 'call', amount: toCall, diagnostics };
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        if (position === 'SB') {
-          let threeBetThreshold = 0.60;
-          diagnostics.threshold = threeBetThreshold;
-          diagnostics.reason = `SB solver 3bet thr=${threeBetThreshold.toFixed(2)}`;
-          if (strength > threeBetThreshold || (blockerScore > 0.10 && Math.random() < 0.35)) {
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 3.4)), diagnostics };
-          }
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        // Other positions — stat-aware call threshold
-        let callThreshold = 0.42;
-        if (oppType === 'nit' && oppId) {
-          const nitStat = { value: 0.65, confidence: 0.7 };
-          const adj = applyStatModifier(callThreshold, nitStat, 'respect_aggr', 0.15);
-          callThreshold = adj.value;
-          diagnostics.statUsed = 'opponentType';
-          diagnostics.statConfidence = 0.7;
-          diagnostics.statEffect = adj.effect;
-        } else if (oppType === 'maniac') {
-          const maniacStat = { value: 0.30, confidence: 0.7 };
-          const adj = applyStatModifier(callThreshold, maniacStat, 'respect_aggr', 0.15);
-          callThreshold = adj.value;
-          diagnostics.statUsed = 'opponentType';
-          diagnostics.statConfidence = 0.7;
-          diagnostics.statEffect = adj.effect;
-        }
-        diagnostics.threshold = callThreshold;
-        diagnostics.reason = diagnostics.reason || `facing raise solver opp=${oppType}`;
-        if (strength > callThreshold) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 3-BET =====
-      if (context === 'facing_3bet') {
-        const fourBetThreshold = 0.78;
-        let fourBetFreq = 0.65;
-        if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MICRO) {
-          if (foldTo4Bet.value > 0.60) {
-            fourBetFreq = 0.85;
-            diagnostics.statUsed = 'foldTo4Bet';
-            diagnostics.statConfidence = foldTo4Bet.confidence;
-            diagnostics.statEffect = 0.20;
-            diagnostics.exploitActive = true;
-          } else if (foldTo4Bet.value < 0.30) {
-            fourBetFreq = 0.35;
-            diagnostics.statUsed = 'foldTo4Bet';
-            diagnostics.statConfidence = foldTo4Bet.confidence;
-            diagnostics.statEffect = -0.30;
-            diagnostics.exploitActive = true;
-          }
-        }
-        diagnostics.threshold = fourBetThreshold;
-        diagnostics.reason = `solver vs 3bet fourBetFreq=${fourBetFreq.toFixed(2)}`;
-
-        if (strength > fourBetThreshold && Math.random() < fourBetFreq && stackBB > 15) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 9)), diagnostics };
-        }
-        if ((position === 'BTN' || position === 'CO') && strength > 0.55 && stackBB > 25) {
-          diagnostics.reason += ' | flat IP';
-          return { action: 'call', amount: toCall, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 4-BET =====
-      if (context === 'facing_4bet') {
-        let fiveBetThreshold = 0.86;
-        if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MICRO) {
-          if (foldTo4Bet.value > 0.65) {
-            fiveBetThreshold = 0.78;
-            diagnostics.statUsed = 'foldTo4Bet';
-            diagnostics.statConfidence = foldTo4Bet.confidence;
-            diagnostics.statEffect = -0.08;
-            diagnostics.exploitActive = true;
-          } else if (foldTo4Bet.value < 0.30) {
-            fiveBetThreshold = 0.92;
-            diagnostics.statUsed = 'foldTo4Bet';
-            diagnostics.statConfidence = foldTo4Bet.confidence;
-            diagnostics.statEffect = 0.06;
-            diagnostics.exploitActive = true;
-          }
-        }
-        diagnostics.threshold = fiveBetThreshold;
-        diagnostics.reason = `solver facing 4bet thr=${fiveBetThreshold.toFixed(2)}`;
-        if (strength > fiveBetThreshold && stackBB > 20) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 22)), diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== UNOPENED (RFI) =====
-      const baseThreshold = BASE_OPEN_THRESHOLDS[position] || 0.50;
-      let openThreshold = (baseThreshold / posMult) * 0.92;
-      if (hasAnte) openThreshold *= 0.90;
-
-      // Stat-based adjustment to open threshold
-      if (oppType === 'station' && oppId) {
-        const adj = applyStatModifier(openThreshold, { value: 0.75, confidence: 0.65 }, 'call_station', 0.15);
-        openThreshold = adj.value;
-        diagnostics.statUsed = 'opponentType';
-        diagnostics.statConfidence = 0.65;
-        diagnostics.statEffect = adj.effect;
-      } else if (oppType === 'nit' && oppId) {
-        const adj = applyStatModifier(openThreshold, { value: 0.25, confidence: 0.65 }, 'fold_to_aggr', 0.15);
-        openThreshold = adj.value;
-        diagnostics.statUsed = 'opponentType';
-        diagnostics.statConfidence = 0.65;
-        diagnostics.statEffect = adj.effect;
-      }
-      openThreshold = Math.min(0.90, Math.max(0.15, openThreshold));
-
-      if (position === 'SB') {
-        const limpFreq = profile.limpHabit * (hasAnte ? 1.2 : 1.0);
-        const roll = Math.random();
-        diagnostics.threshold = openThreshold; diagnostics.limpFreq = limpFreq;
-        diagnostics.reason = `SB RFI solver thr=${openThreshold.toFixed(2)}`;
-        if (strength > openThreshold) {
-          if (roll < limpFreq * 0.8 && strength > 0.78) {
-            diagnostics.reason = 'SB balance limp';
-            return { action: 'call', amount: bb, diagnostics };
-          }
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.0 : 2.4))), diagnostics };
-        }
-        if (strength > 0.32 && roll < limpFreq) return { action: 'call', amount: bb, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      diagnostics.threshold = openThreshold;
-      diagnostics.reason = `RFI ${position} solver thr=${openThreshold.toFixed(2)}`;
-      if (strength > openThreshold) {
-        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 1.9 : 2.3))), diagnostics };
-      }
-      return { action: 'fold', amount: 0, diagnostics };
+      return result;
     }
   };
 
   // ========================================================================
-  // BLOCK 6 — PRO_ICM: ICM-Maximal, Bubble Specialist
+  // BLOCK 9 — PRO_ICM: ICM maximal, bubble specialist
   // ========================================================================
 
   const PRO_ICM = {
@@ -898,219 +950,29 @@
 
     decidePreflop: function(ctx) {
       const profile = PROFILES.PRO_ICM;
-      const card1 = ctx.card1, card2 = ctx.card2;
-      const position = ctx.position;
-      const myStack = ctx.myStack;
-      const bb = ctx.bb;
-      const toCall = ctx.toCall || 0;
-      const pot = ctx.pot || 0;
-      const stackBB = myStack / bb;
-      const stackDepth = getStackDepth(stackBB);
-      const rawStrength = preflopStrength(card1, card2);
-      const posMult = getPositionMultiplier(position);
-      const blockerScore = getBlockerScore(card1, card2);
-      const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
-      const er = equityRealization(card1, card2, position, ctx.numActive || 8);
-      const strength = Math.min(1, rawStrength * er);
-
-      const playersLeft = ctx.playersLeft || 8;
-      const itmCount = ctx.itmCount || 3;
-      const oppStackBB = ctx.opponentStackBB || stackBB;
-      const bubbleFactor = calculateBubbleFactor(stackBB, oppStackBB, playersLeft, itmCount);
-      const icmPressure = getICMPressure(playersLeft, itmCount);
-      const payoutStructure = getPayoutStructure(playersLeft, itmCount);
-      const context = detectContext(ctx);
-
-      const oppId = ctx.opponentId || null;
-      const oppType = oppId ? getOpponentType(oppId) : 'unknown';
-      const foldToResteal = oppId ? getShrunk(oppId, 'foldToResteal') : { value: PRIORS.foldToResteal, confidence: 0 };
-      const isMediumOnBubble = icmPressure === 'bubble' && stackBB > 15 && stackBB < 35;
-      const isBigOnBubble = icmPressure === 'bubble' && stackBB >= 35;
-
-      const diagnostics = {
-        source: 'pro', botType: 'PRO_ICM',
-        strength, strengthRaw: rawStrength, equityRealization: er,
-        stackDepth, position, positionModifier: posMult, effectiveStackBB: stackBB,
-        bubbleFactor, icmPressure, payoutStructure, blockerScore,
-        multiwayCount: ctx.numActive || 8,
-        contextType: context,
-        raiserPosition: ctx.raiserPosition || null,
-        numLimpers: ctx.numLimpers || 0,
-        isRealRaise: !!ctx.isRealRaise,
-        opponentType: oppType, exploitActive: false,
-        statUsed: null, statConfidence: 0, statEffect: 0,
-        hasAnte, frequency: 1.0, reason: ''
-      };
-
-      // ===== SHORT STACK PUSH =====
-      if (stackBB <= 20 && context === 'unopened') {
-        const table = NASH_PUSH_TABLE[position] || NASH_PUSH_TABLE.BTN;
-        let pushFreq = 0.10;
-        for (const stack of [5, 8, 10, 12, 15, 20, 25]) {
-          if (stackBB <= stack) { pushFreq = table[stack] || pushFreq; break; }
-        }
-        if (hasAnte) pushFreq *= 1.06;
-        if (icmPressure === 'bubble' && stackBB < 15) pushFreq *= 1.20;
-        if (icmPressure === 'final_table' && stackBB < 15) pushFreq *= 1.10;
-        if (icmPressure === 'bubble' && stackBB >= 15 && stackBB <= 30) pushFreq *= 0.75;
-        if (icmPressure === 'final_table' && stackBB >= 15 && stackBB <= 30) pushFreq *= 0.80;
-        const roll = Math.random();
-        diagnostics.frequency = pushFreq; diagnostics.randomRoll = roll;
-        diagnostics.threshold = 'nash_push_icm';
-        diagnostics.reason = `Nash push ICM ${icmPressure} freq=${pushFreq.toFixed(2)}`;
-        if (roll < pushFreq && strength > 0.28) return { action: 'allin', amount: myStack, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING ALL-IN =====
-      if (context === 'facing_allin_preflop') {
-        const requiredEquity = bubbleFactor / (bubbleFactor + 1);
-        let callThreshold = adjustThresholdForICM(0.55, bubbleFactor, profile.icmSensitivity);
-        if (isMediumOnBubble) callThreshold += 0.12;
-        if (icmPressure === 'final_table' && stackBB > 15 && stackBB < 35) callThreshold += 0.10;
-        diagnostics.threshold = callThreshold;
-        diagnostics.requiredEquity = requiredEquity;
-        diagnostics.reason = `facing allin ICM need ${(callThreshold * 100).toFixed(0)}% BF=${bubbleFactor.toFixed(2)}`;
-        if (strength > callThreshold || (stackBB < 10 && strength > 0.60)) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== BB CHECK OPTION =====
-      if (context === 'bb_check_option') {
-        const limpers = ctx.numLimpers || 0;
-        // ICM: on bubble, prefer checking. Only iso-raise premium hands.
-        const isoThreshold = (isMediumOnBubble || isBigOnBubble) ? 0.88 : 0.82;
-        if (strength > isoThreshold && limpers >= 1) {
-          diagnostics.threshold = isoThreshold;
-          diagnostics.reason = `BB ICM iso-raise over ${limpers} limper(s) thr=${isoThreshold.toFixed(2)}`;
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (4.0 + limpers))), diagnostics };
-        }
-        diagnostics.threshold = 'check';
-        diagnostics.reason = 'BB check option, ICM cautious';
-        return { action: 'check', amount: 0, diagnostics };
-      }
-
-      // ===== FACING LIMP =====
-      if (context === 'facing_limp') {
-        const limpers = ctx.numLimpers || 1;
-        let isoThreshold = 0.48;
-        if (position === 'SB' || position === 'BB') isoThreshold += 0.06;
-        if (hasAnte) isoThreshold -= 0.02;
-        if (isMediumOnBubble) isoThreshold += 0.08;
-        if (isBigOnBubble) isoThreshold -= 0.04;
-        isoThreshold = Math.max(0.30, Math.min(0.80, isoThreshold));
-
-        diagnostics.threshold = isoThreshold;
-        diagnostics.reason = `ICM iso-raise vs ${limpers} limper(s) thr=${isoThreshold.toFixed(2)}`;
-
-        if (strength > isoThreshold) {
-          const isoSize = Math.round(bb * (2.5 + 0.7 * limpers) + (hasAnte ? bb : 0));
-          return { action: 'raise', amount: Math.min(myStack, isoSize), diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING RAISE =====
-      if (context === 'facing_raise') {
-        if (position === 'BB') {
-          const openPos = ctx.raiserPosition || 'BTN';
-          let defendThreshold = 0.34;
-          if (openPos === 'UTG' || openPos === 'UTG1') defendThreshold = 0.50;
-          else if (openPos === 'LJ' || openPos === 'HJ') defendThreshold = 0.44;
-          else if (openPos === 'CO') defendThreshold = 0.36;
-          else defendThreshold = 0.32;
-          if (isMediumOnBubble) defendThreshold += 0.10;
-          if (icmPressure === 'final_table' && stackBB > 15 && stackBB < 35) defendThreshold += 0.08;
-          diagnostics.threshold = defendThreshold;
-          diagnostics.reason = `BB defend ICM vs ${openPos} thr=${defendThreshold.toFixed(2)}`;
-          if (strength > defendThreshold) return { action: 'call', amount: toCall, diagnostics };
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        if (position === 'SB') {
-          let threeBetThreshold = 0.72;
-          if (icmPressure === 'bubble') threeBetThreshold += 0.08;
-          diagnostics.threshold = threeBetThreshold;
-          diagnostics.reason = `SB 3bet ICM thr=${threeBetThreshold.toFixed(2)}`;
-          if (strength > threeBetThreshold) return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 3.4)), diagnostics };
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        const potOdds = toCall / (pot + toCall);
-        let callThreshold = Math.max(0.44, potOdds * 1.6);
-        if (isMediumOnBubble) callThreshold += 0.10;
-        diagnostics.threshold = callThreshold;
-        diagnostics.potOdds = potOdds;
-        diagnostics.reason = `facing raise ICM potOdds=${(potOdds * 100).toFixed(0)}%`;
-        if (strength > callThreshold) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 3-BET =====
-      if (context === 'facing_3bet') {
-        const fourBetThreshold = 0.84;
-        diagnostics.threshold = fourBetThreshold;
-        diagnostics.reason = `ICM vs 3bet thr=${fourBetThreshold.toFixed(2)}`;
-        if (strength > fourBetThreshold && stackBB > 20) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 9)), diagnostics };
-        }
-        if ((position === 'BTN' || position === 'CO') && strength > 0.60 && stackBB > 30) {
-          diagnostics.reason += ' | in-position flat';
-          return { action: 'call', amount: toCall, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 4-BET =====
-      if (context === 'facing_4bet') {
-        const fiveBetThreshold = 0.92;
-        diagnostics.threshold = fiveBetThreshold;
-        diagnostics.reason = `ICM vs 4bet thr=${fiveBetThreshold.toFixed(2)}`;
-        if (strength > fiveBetThreshold && stackBB > 25) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 22)), diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== UNOPENED (RFI) =====
-      const baseThreshold = BASE_OPEN_THRESHOLDS[position] || 0.50;
-      let openThreshold = baseThreshold / posMult;
-      if (hasAnte) openThreshold *= 0.94;
-      if (isBigOnBubble) openThreshold *= 0.85;
-      else if (isMediumOnBubble) openThreshold *= 1.15;
-      if (icmPressure === 'final_table') {
-        if (stackBB > 40) openThreshold *= 0.82;
-        else if (stackBB > 15 && stackBB <= 40) openThreshold *= 1.18;
-      }
-      openThreshold = Math.min(0.92, Math.max(0.15, openThreshold));
-
-      if (position === 'SB') {
-        const limpFreq = profile.limpHabit * (hasAnte ? 1.2 : 1.0) * (icmPressure === 'bubble' ? 0.5 : 1.0);
-        const roll = Math.random();
-        diagnostics.threshold = openThreshold; diagnostics.limpFreq = limpFreq;
-        diagnostics.reason = `SB RFI ICM thr=${openThreshold.toFixed(2)} limp=${limpFreq.toFixed(2)}`;
-        if (strength > openThreshold) {
-          if (roll < limpFreq && strength > 0.80) {
-            diagnostics.reason = 'SB balance limp ICM';
-            return { action: 'call', amount: bb, diagnostics };
+      const result = decidePreflopCore('PRO_ICM', ctx, profile);
+      // ICM bot: extra tightening on bubble/final for open thresholds
+      if (result.diagnostics && result.diagnostics.decisionBranch === 'unopened') {
+        const stackBB = result.diagnostics.effectiveStackBB;
+        const icmPressure = result.diagnostics.icmPressure;
+        // Additional tightening beyond core
+        if (icmPressure === 'bubble' && stackBB > 15 && stackBB < 35) {
+          const extra = 0.10;
+          if (result.action === 'raise' && result.diagnostics.threshold &&
+              typeof result.diagnostics.threshold === 'number' &&
+              result.diagnostics.strength < result.diagnostics.threshold + extra) {
+            result.action = 'fold';
+            result.amount = 0;
+            result.diagnostics.reason += ` | ICM extra-tighten (bubble, ${stackBB.toFixed(0)}bb)`;
           }
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.1 : 2.5))), diagnostics };
         }
-        if (strength > 0.35 && roll < limpFreq) return { action: 'call', amount: bb, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
       }
-
-      diagnostics.threshold = openThreshold;
-      diagnostics.reason = `RFI ${position} ICM thr=${openThreshold.toFixed(2)}`;
-      if (strength > openThreshold) {
-        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.0 : 2.5))), diagnostics };
-      }
-      return { action: 'fold', amount: 0, diagnostics };
+      return result;
     }
   };
 
   // ========================================================================
-  // BLOCK 7 — PRO_LAG: Maximum Aggression, Exploit-Heavy
+  // BLOCK 10 — PRO_LAG: Max aggression, exploit-heavy
   // ========================================================================
 
   const PRO_LAG = {
@@ -1119,256 +981,158 @@
 
     decidePreflop: function(ctx) {
       const profile = PROFILES.PRO_LAG;
-      const card1 = ctx.card1, card2 = ctx.card2;
-      const position = ctx.position;
-      const myStack = ctx.myStack;
-      const bb = ctx.bb;
-      const toCall = ctx.toCall || 0;
-      const pot = ctx.pot || 0;
-      const stackBB = myStack / bb;
-      const stackDepth = getStackDepth(stackBB);
-      const rawStrength = preflopStrength(card1, card2);
-      const posMult = getPositionMultiplier(position);
-      const blockerScore = getBlockerScore(card1, card2);
-      const hasAnte = (ctx.ante > 0) || (ctx.blinds && ctx.blinds.ante > 0);
-      const er = equityRealization(card1, card2, position, ctx.numActive || 8);
-      const strength = Math.min(1, rawStrength * er);
-
-      const playersLeft = ctx.playersLeft || 8;
-      const itmCount = ctx.itmCount || 3;
-      const bubbleFactor = calculateBubbleFactor(stackBB, ctx.opponentStackBB || stackBB, playersLeft, itmCount);
-      const icmPressure = getICMPressure(playersLeft, itmCount);
-      const effectiveICM = icmPressure === 'final_table' ? icmPressure : 'none';
-      const context = detectContext(ctx);
-
-      const oppId = ctx.opponentId || null;
-      const oppType = oppId ? getOpponentType(oppId) : 'unknown';
-      const foldToResteal = oppId ? getShrunk(oppId, 'foldToResteal') : { value: PRIORS.foldToResteal, confidence: 0 };
-      const foldTo4Bet = oppId ? getShrunk(oppId, 'foldTo4Bet') : { value: PRIORS.foldTo4Bet, confidence: 0 };
-      const foldToSqueeze = oppId ? getShrunk(oppId, 'foldToSqueeze') : { value: PRIORS.foldToSqueeze, confidence: 0 };
-
-      const diagnostics = {
-        source: 'pro', botType: 'PRO_LAG',
-        strength, strengthRaw: rawStrength, equityRealization: er,
-        stackDepth, position, positionModifier: posMult, effectiveStackBB: stackBB,
-        bubbleFactor, icmPressure, blockerScore,
-        multiwayCount: ctx.numActive || 8,
-        contextType: context,
-        raiserPosition: ctx.raiserPosition || null,
-        numLimpers: ctx.numLimpers || 0,
-        isRealRaise: !!ctx.isRealRaise,
-        opponentType: oppType, exploitActive: false,
-        statUsed: null, statConfidence: 0, statEffect: 0,
-        hasAnte, frequency: 1.0, reason: ''
-      };
-
-      // ===== SHORT STACK =====
-      if (stackBB <= 20 && context === 'unopened') {
-        const table = NASH_PUSH_TABLE[position] || NASH_PUSH_TABLE.BTN;
-        let pushFreq = 0.10;
-        for (const stack of [5, 8, 10, 12, 15, 20, 25]) {
-          if (stackBB <= stack) { pushFreq = table[stack] || pushFreq; break; }
-        }
-        pushFreq *= 1.15;
-        if (hasAnte) pushFreq *= 1.05;
-        if (effectiveICM === 'final_table') pushFreq *= 0.90;
-        const roll = Math.random();
-        diagnostics.frequency = pushFreq; diagnostics.randomRoll = roll;
-        diagnostics.threshold = 'nash_push_lag';
-        diagnostics.reason = `Nash push LAG freq=${pushFreq.toFixed(2)}`;
-        if (roll < pushFreq && strength > 0.25) return { action: 'allin', amount: myStack, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING ALL-IN =====
-      if (context === 'facing_allin_preflop') {
-        const callThreshold = Math.max(0.45, adjustThresholdForICM(0.48, bubbleFactor * 0.7, profile.icmSensitivity));
-        diagnostics.threshold = callThreshold;
-        diagnostics.reason = `facing allin LAG thr=${callThreshold.toFixed(2)}`;
-        if (strength > callThreshold) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== BB CHECK OPTION =====
-      if (context === 'bb_check_option') {
-        const limpers = ctx.numLimpers || 0;
-        if (strength > 0.60 && limpers >= 1) {
-          diagnostics.threshold = 0.60;
-          diagnostics.reason = `BB LAG iso-raise over ${limpers} limper(s)`;
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (3.5 + limpers))), diagnostics };
-        }
-        // LAG sometimes raises with weak-but-playable hands for balance
-        if (limpers >= 1 && Math.random() < 0.20 && blockerScore > 0) {
-          diagnostics.reason = 'BB LAG blocker iso';
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (4.0 + limpers))), diagnostics };
-        }
-        diagnostics.threshold = 'check';
-        diagnostics.reason = 'BB check option LAG';
-        return { action: 'check', amount: 0, diagnostics };
-      }
-
-      // ===== FACING LIMP =====
-      if (context === 'facing_limp') {
-        const limpers = ctx.numLimpers || 1;
-        let isoThreshold = 0.32;
-        if (hasAnte) isoThreshold -= 0.02;
-        if (limpers >= 2) isoThreshold -= 0.03;
-        isoThreshold = Math.max(0.20, Math.min(0.65, isoThreshold));
-
-        diagnostics.threshold = isoThreshold;
-        diagnostics.reason = `LAG iso-raise vs ${limpers} limper(s) thr=${isoThreshold.toFixed(2)}`;
-
-        if (strength > isoThreshold) {
-          const isoSize = Math.round(bb * (3.2 + 0.9 * limpers) + (hasAnte ? bb : 0));
-          return { action: 'raise', amount: Math.min(myStack, isoSize), diagnostics };
-        }
-        if (strength > 0.28 && blockerScore > 0 && Math.random() < 0.30) {
-          diagnostics.reason += ' | LAG overcall bluff';
-          return { action: 'call', amount: toCall, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING RAISE =====
-      if (context === 'facing_raise') {
-        // Against 4-bet: use foldTo4Bet if enough sample
-        if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MICRO) {
-          if (foldTo4Bet.value < 0.30) {
-            diagnostics.statUsed = 'foldTo4Bet';
-            diagnostics.statConfidence = foldTo4Bet.confidence;
-            diagnostics.statEffect = 0.10;
-            diagnostics.threshold = 0.65;
-            diagnostics.reason = 'LAG vs 4bet, opp never folds, only continue strong';
-            if (strength > 0.65) return { action: 'call', amount: toCall, diagnostics };
-            return { action: 'fold', amount: 0, diagnostics };
-          }
-          if (foldTo4Bet.value > 0.65 && blockerScore > 0) {
-            diagnostics.statUsed = 'foldTo4Bet';
-            diagnostics.statConfidence = foldTo4Bet.confidence;
-            diagnostics.statEffect = -0.20;
-            diagnostics.exploitActive = true;
-            diagnostics.reason = 'LAG vs 4bet, opp overfolds, bluff 4bet';
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 22)), diagnostics };
-          }
-        }
-
-        const threeBetFreq = 0.25 + (blockerScore > 0 ? 0.15 : 0);
-        const roll = Math.random();
-
-        if (position === 'BB') {
-          const openPos = ctx.raiserPosition || 'BTN';
-          const rest = foldToResteal.confidence >= STAT_CONFIDENCE.MICRO && foldToResteal.value > 0.60;
-          if (rest) {
-            diagnostics.statUsed = 'foldToResteal';
-            diagnostics.statConfidence = foldToResteal.confidence;
-            diagnostics.statEffect = 0.15;
-            diagnostics.exploitActive = true;
-          }
-          if (strength > 0.58 || (blockerScore > 0.05 && roll < (rest ? 0.55 : threeBetFreq))) {
-            diagnostics.threshold = 0.58;
-            diagnostics.reason = `BB 3bet LAG blocker=${blockerScore.toFixed(2)} exploitable=${rest}`;
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 4.5)), diagnostics };
-          }
-          diagnostics.threshold = 0.28;
-          diagnostics.reason = `BB defend LAG vs ${openPos}`;
-          if (strength > 0.28) return { action: 'call', amount: toCall, diagnostics };
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        if (position === 'SB') {
-          if (strength > 0.55 || (blockerScore > 0.05 && roll < 0.35)) {
-            return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 3.5)), diagnostics };
-          }
-          return { action: 'fold', amount: 0, diagnostics };
-        }
-
-        if (strength > 0.55 && roll < threeBetFreq) {
-          diagnostics.reason = 'LAG 3bet';
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 3.6)), diagnostics };
-        }
-
-        let callThreshold = 0.38;
-        if (oppType === 'nit') callThreshold = 0.50;
-        if (oppType === 'maniac') callThreshold = 0.30;
-        diagnostics.threshold = callThreshold;
-        diagnostics.reason = `facing raise LAG opp=${oppType}`;
-        if (strength > callThreshold) return { action: 'call', amount: toCall, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 3-BET =====
-      if (context === 'facing_3bet') {
-        const fourBetThreshold = 0.70;
-        let fourBetFreq = 0.55;
-        if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MODERATE && foldTo4Bet.value > 0.65) {
-          fourBetFreq = 0.80;
-          diagnostics.statUsed = 'foldTo4Bet';
-          diagnostics.statConfidence = foldTo4Bet.confidence;
-          diagnostics.statEffect = 0.25;
-          diagnostics.exploitActive = true;
-        }
-        diagnostics.threshold = fourBetThreshold;
-        diagnostics.reason = `LAG vs 3bet thr=${fourBetThreshold.toFixed(2)} freq=${fourBetFreq.toFixed(2)}`;
-        if (strength > fourBetThreshold && Math.random() < fourBetFreq && stackBB > 15) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * 9)), diagnostics };
-        }
-        if ((position === 'BTN' || position === 'CO') && strength > 0.50 && stackBB > 25) {
-          diagnostics.reason += ' | in-position flat';
-          return { action: 'call', amount: toCall, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== FACING 4-BET =====
-      if (context === 'facing_4bet') {
-        let fiveBetThreshold = 0.82;
-        if (foldTo4Bet.confidence >= STAT_CONFIDENCE.MICRO && foldTo4Bet.value > 0.60) {
-          fiveBetThreshold = 0.74;
-          diagnostics.statUsed = 'foldTo4Bet';
-          diagnostics.statConfidence = foldTo4Bet.confidence;
-          diagnostics.statEffect = -0.08;
-          diagnostics.exploitActive = true;
-        }
-        diagnostics.threshold = fiveBetThreshold;
-        diagnostics.reason = `LAG vs 4bet thr=${fiveBetThreshold.toFixed(2)}`;
-        if (strength > fiveBetThreshold && stackBB > 15) {
-          return { action: 'allin', amount: myStack, diagnostics };
-        }
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      // ===== UNOPENED (RFI) =====
-      const baseThreshold = BASE_OPEN_THRESHOLDS[position] || 0.50;
-      let openThreshold = (baseThreshold / posMult) * 0.85;
-      if (hasAnte) openThreshold *= 0.88;
-      if (oppType === 'station') openThreshold *= 1.12;
-      if (oppType === 'nit') openThreshold *= 0.80;
-      if (oppType === 'maniac') openThreshold *= 1.05;
-      openThreshold = Math.min(0.88, Math.max(0.12, openThreshold));
-
-      if (position === 'SB') {
-        const limpFreq = 0.03;
-        const roll = Math.random();
-        diagnostics.threshold = openThreshold; diagnostics.limpFreq = limpFreq;
-        diagnostics.reason = `SB RFI LAG thr=${openThreshold.toFixed(2)}`;
-        if (strength > openThreshold) {
-          return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.2 : 2.6))), diagnostics };
-        }
-        if (strength > 0.38 && roll < limpFreq) return { action: 'call', amount: bb, diagnostics };
-        return { action: 'fold', amount: 0, diagnostics };
-      }
-
-      diagnostics.threshold = openThreshold;
-      diagnostics.reason = `RFI ${position} LAG thr=${openThreshold.toFixed(2)}`;
-      if (strength > openThreshold) {
-        return { action: 'raise', amount: Math.min(myStack, Math.round(bb * (hasAnte ? 2.0 : 2.4))), diagnostics };
-      }
-      return { action: 'fold', amount: 0, diagnostics };
+      const result = decidePreflopCore('PRO_LAG', ctx, profile);
+      // LAG ignores ICM mostly (profile.icmSensitivity is low)
+      return result;
     }
   };
 
   // ========================================================================
-  // BLOCK 8 — DISPATCHER & PUBLIC FACADE
+  // BLOCK 11 — POSTFLOP (basic, not Stage 2 — Stage 2 separate)
+  // ========================================================================
+
+  function postflopStrength(handScore) {
+    if (!handScore) return 0;
+    const base = [0.12, 0.30, 0.50, 0.68, 0.78, 0.85, 0.92, 0.97, 0.99, 1.00][handScore.category] || 0;
+    const rank = handScore.ranks[0] || 0;
+    return Math.min(1, base + (rank / 14) * 0.04);
+  }
+
+  function analyzeBoardTexture(board) {
+    if (!board || board.length === 0) return { wet: 0, paired: false, flushPossible: false, straightPossible: false, suitedCount: 0 };
+    const values = board.map(c => R[c.rank]);
+    const suits = board.map(c => c.suit);
+    const freq = {};
+    for (const v of values) freq[v] = (freq[v] || 0) + 1;
+    const paired = Object.values(freq).some(v => v >= 2);
+    const suitFreq = {};
+    for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
+    let suitedCount = 0;
+    for (const c of Object.values(suitFreq)) if (c > suitedCount) suitedCount = c;
+    const flushPossible = suitedCount >= 3;
+    const uniqueVals = [...new Set(values)].sort((a, b) => a - b);
+    let straightPossible = false;
+    for (let i = 0; i < uniqueVals.length - 2; i++) {
+      if (uniqueVals[i + 2] - uniqueVals[i] <= 4) { straightPossible = true; break; }
+    }
+    let wet = 0;
+    if (flushPossible) wet += 0.35;
+    if (straightPossible) wet += 0.35;
+    if (paired) wet += 0.15;
+    if (suitedCount === 4) wet += 0.15;
+    return { wet: Math.min(1, wet), paired, flushPossible, straightPossible, suitedCount };
+  }
+
+  function getMadeHandClass(score) {
+    if (!score) return 'nothing';
+    const names = ['high_card', 'pair', 'two_pair', 'trips', 'straight', 'flush', 'full_house', 'quads', 'straight_flush', 'royal_flush'];
+    return names[score.category] || 'unknown';
+  }
+
+  function getDrawClass(card1, card2, board) {
+    if (!board || board.length < 3) return 'none';
+    const allCards = [card1, card2, ...board];
+    const suits = {};
+    for (const c of allCards) suits[c.suit] = (suits[c.suit] || 0) + 1;
+    let hasFlushDraw = false;
+    for (const s of Object.keys(suits)) {
+      if (suits[s] === 4) hasFlushDraw = true;
+    }
+    const values = [...new Set(allCards.map(c => R[c.rank]))].sort((a,b) => a-b);
+    let hasStraightDraw = false;
+    for (let i = 0; i < values.length - 3; i++) {
+      if (values[i + 3] - values[i] <= 4) { hasStraightDraw = true; break; }
+    }
+    if (hasFlushDraw && hasStraightDraw) return 'combo_draw';
+    if (hasFlushDraw) return 'flush_draw';
+    if (hasStraightDraw) return 'straight_draw';
+    return 'none';
+  }
+
+  function decidePostflop(ctx) {
+    const card1 = ctx.card1, card2 = ctx.card2;
+    if (!card1 || !card2) {
+      return { action: 'fold', amount: 0, diagnostics: { error: 'missing_cards' } };
+    }
+    const board = ctx.board || [];
+    if (board.length < 3) {
+      return { action: 'check', amount: 0, diagnostics: { error: 'no_flop' } };
+    }
+
+    const allCards = [card1, card2, ...board];
+    const handScore = Engine.evaluateHand(allCards);
+    const strength = postflopStrength(handScore);
+    const madeHandClass = getMadeHandClass(handScore);
+    const drawClass = getDrawClass(card1, card2, board);
+    const texture = analyzeBoardTexture(board);
+
+    const toCall = ctx.toCall || 0;
+    const pot = ctx.pot || 0;
+    const myStack = ctx.myStack || 0;
+    const bb = ctx.bb || 1;
+    const street = ctx.street || 'flop';
+    const potOdds = toCall > 0 ? toCall / (pot + toCall) : 0;
+    const spr = pot > 0 ? myStack / pot : 0;
+
+    const diagnostics = {
+      source: 'pro',
+      botType: ctx.botType || 'PRO_GTO',
+      decisionBranch: toCall > 0 ? 'facing_bet_postflop' : 'unopened_postflop',
+      contextType: toCall > 0 ? 'facing_bet_postflop' : 'unopened_postflop',
+      handName: handScore ? handScore.name : '—',
+      madeHandClass: madeHandClass,
+      drawClass: drawClass,
+      boardTexture: texture.wet > 0.5 ? 'wet' : (texture.wet > 0.2 ? 'medium' : 'dry'),
+      strength: strength,
+      potOdds: potOdds,
+      spr: spr,
+      foldEquity: null,
+      reason: ''
+    };
+
+    // Draw bonus: a flush draw has extra equity
+    let effectiveStrength = strength;
+    if (drawClass === 'combo_draw') effectiveStrength += 0.15;
+    else if (drawClass === 'flush_draw' || drawClass === 'straight_draw') effectiveStrength += 0.10;
+    effectiveStrength = Math.min(1, effectiveStrength);
+
+    if (toCall === 0) {
+      // No bet, we can check or bet
+      if (effectiveStrength > 0.65) {
+        const betSize = Math.round(pot * (texture.wet > 0.5 ? 0.65 : 0.5));
+        diagnostics.reason = `value bet (${madeHandClass}, str=${effectiveStrength.toFixed(2)})`;
+        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)), diagnostics };
+      }
+      if (effectiveStrength > 0.42 && drawClass !== 'none') {
+        const betSize = Math.round(pot * 0.5);
+        diagnostics.reason = `semi-bluff bet (${drawClass})`;
+        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)), diagnostics };
+      }
+      diagnostics.reason = `check (${madeHandClass}, str=${effectiveStrength.toFixed(2)})`;
+      return { action: 'check', amount: 0, diagnostics };
+    }
+
+    // Facing bet
+    const requiredEquity = potOdds * 1.15;
+    if (effectiveStrength > 0.72) {
+      const raiseSize = Math.min(myStack, Math.round(pot * 2.5 + toCall));
+      diagnostics.reason = `raise (${madeHandClass}, str=${effectiveStrength.toFixed(2)}, potOdds=${potOdds.toFixed(2)})`;
+      return { action: 'raise', amount: raiseSize, diagnostics };
+    }
+    if (effectiveStrength > requiredEquity) {
+      diagnostics.reason = `call (${madeHandClass}, str=${effectiveStrength.toFixed(2)} > req=${requiredEquity.toFixed(2)})`;
+      return { action: 'call', amount: Math.min(toCall, myStack), diagnostics };
+    }
+    if (drawClass !== 'none' && effectiveStrength + 0.05 > requiredEquity && toCall < pot * 0.6) {
+      diagnostics.reason = `draw call (${drawClass})`;
+      return { action: 'call', amount: Math.min(toCall, myStack), diagnostics };
+    }
+    diagnostics.reason = `fold (${madeHandClass}, str=${effectiveStrength.toFixed(2)} < req=${requiredEquity.toFixed(2)})`;
+    return { action: 'fold', amount: 0, diagnostics };
+  }
+
+  // ========================================================================
+  // BLOCK 12 — DISPATCHER & PUBLIC FACADE
   // ========================================================================
 
   const BOT_IMPLEMENTATIONS = {
@@ -1382,27 +1146,11 @@
     if (!ctx || !ctx.botType) return { action: 'fold', amount: 0, diagnostics: { error: 'missing_context' } };
     const impl = BOT_IMPLEMENTATIONS[ctx.botType];
     if (!impl) return { action: 'fold', amount: 0, diagnostics: { error: 'unknown_bot_type', botType: ctx.botType } };
-    return impl.decidePreflop(ctx);
-  }
-
-  function decidePostflop(ctx) {
-    const profile = PROFILES[ctx.botType];
-    if (!profile) return { action: 'fold', amount: 0, diagnostics: { error: 'no_profile' } };
-    const card1 = ctx.card1, card2 = ctx.card2;
-    const board = ctx.board || [];
-    const toCall = ctx.toCall || 0;
-    const pot = ctx.pot || 0;
-    if (toCall === 0) {
-      const strength = preflopStrength(card1, card2);
-      if (strength > 0.60) {
-        const betSize = Math.round(pot * 0.5);
-        return { action: 'bet', amount: Math.min(ctx.myStack, Math.max(ctx.bb, betSize)), diagnostics: { source: 'pro', strength } };
-      }
-      return { action: 'check', amount: 0, diagnostics: { source: 'pro', strength } };
+    try {
+      return impl.decidePreflop(ctx);
+    } catch (err) {
+      return { action: 'fold', amount: 0, diagnostics: { error: 'decision_error', message: String(err && err.message || err) } };
     }
-    const potOdds = toCall / (pot + toCall);
-    if (preflopStrength(card1, card2) > potOdds * 1.5) return { action: 'call', amount: toCall, diagnostics: { source: 'pro' } };
-    return { action: 'fold', amount: 0, diagnostics: { source: 'pro' } };
   }
 
   function decide(ctx) {
@@ -1433,65 +1181,58 @@
   function getTypeMeta(botType) { return TYPES[botType] || null; }
 
   const ProTexture = {
-    analyze: function(board) {
-      const result = { wet: 0, paired: false, flushPossible: false, straightPossible: false, highCard: 0, flushSuit: null, suitedCount: 0 };
-      if (!board || board.length === 0) return result;
-      const values = board.map(c => R[c.rank]);
-      const suits = board.map(c => c.suit);
-      const sorted = values.slice().sort((a, b) => b - a);
-      result.highCard = sorted[0] || 0;
-      const freq = {};
-      for (const v of values) freq[v] = (freq[v] || 0) + 1;
-      result.paired = Object.values(freq).some(v => v >= 2);
-      const suitFreq = {};
-      for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
-      let suitedCount = 0; let flushSuit = null;
-      for (const [s, c] of Object.entries(suitFreq)) {
-        if (c > suitedCount) { suitedCount = c; flushSuit = s; }
-      }
-      result.suitedCount = suitedCount;
-      result.flushSuit = flushSuit;
-      result.flushPossible = suitedCount >= 3;
-      const uniqueVals = [...new Set(values)].sort((a, b) => a - b);
-      for (let i = 0; i < uniqueVals.length - 2; i++) {
-        if (uniqueVals[i + 2] - uniqueVals[i] <= 4) { result.straightPossible = true; break; }
-      }
-      let wet = 0;
-      if (result.flushPossible) wet += 0.35;
-      if (result.straightPossible) wet += 0.35;
-      if (result.paired) wet += 0.15;
-      if (suitedCount === 4) wet += 0.15;
-      result.wet = Math.min(1, wet);
-      return result;
-    }
+    analyze: analyzeBoardTexture
   };
 
   // ========================================================================
-  // BLOCK 9 — EXPORT
+  // BLOCK 13 — EXPORT
   // ========================================================================
 
   const Bots = {
     CLASS_PRO,
     CLASS_VIP: null,
-    TYPES, PROFILES, Texture: ProTexture,
-    decidePreflop, decidePostflop, decide,
-    assignBotTypes, assignBotsToSeats,
+    TYPES,
+    PROFILES,
+    Texture: ProTexture,
+    decidePreflop,
+    decidePostflop,
+    decide,
+    assignBotTypes,
+    assignBotsToSeats,
     preflopStrength,
     handInChart: function() { return false; },
-    updateModel, updateMeta, getRead, reset, dumpStats,
-    getProfile, getTypeMeta,
-    updateOpponentStats, getOpponentType, getShrunk,
+    updateModel,
+    updateMeta,
+    getRead,
+    reset,
+    dumpStats,
+    getProfile,
+    getTypeMeta,
+    updateOpponentStats,
+    getOpponentType,
+    getShrunk,
     detectContext,
     _internal: {
-      calculateBubbleFactor, getStackDepth, getPositionMultiplier,
-      getBlockerScore, equityRealization, shrink, applyStatModifier,
-      NASH_PUSH_TABLE, BASE_OPEN_THRESHOLDS, POSITION_MULTIPLIERS,
-      PRIORS, SHRINK_K, STAT_CONFIDENCE, opponentStats
+      calculateBubbleFactor,
+      getStackDepth,
+      getPositionMultiplier,
+      getBlockerScore,
+      getBlockerReason,
+      equityRealization,
+      shrink,
+      applyStatModifier,
+      NASH_PUSH_TABLE,
+      BASE_OPEN_THRESHOLDS,
+      POSITION_MULTIPLIERS,
+      PRIORS,
+      SHRINK_K,
+      STAT_CONFIDENCE,
+      opponentStats
     }
   };
 
   Bots.__level = 'top';
-  Bots.__version = '2.2-preflop-context';
+  Bots.__version = '3.0-preflop-full';
   Bots.__source = 'bots.js';
 
   window.Bots = Bots;
