@@ -29,8 +29,8 @@
   --muted: #8a8a8a;
   --muted-soft: #9a9a9a;
   --muted-soft-2: #a8a8a8;
-  --pro-color: #4a3a68;
-  --vip-color: #324a6e;
+  --pro-color: #d94f3d;
+  --vip-color: #3fa9f5;
   --accent: #3fa9f5;
   --danger: #d94f3d;
   --ok: #2fb571;
@@ -536,7 +536,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
     #d9aa2e 75%,
     #c69a1e 88%,
     #b8860b 100%);
-  color: #1a1a1a;
   font-size: clamp(9px, 1.2vmin, 11px);
   font-weight: 900;
   border-radius: 50%;
@@ -546,8 +545,21 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
   box-shadow: 0 1px 4px rgba(0,0,0,.7);
   border: 1px solid #8a6508;
   z-index: 16;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  transition: color .18s ease, box-shadow .18s ease;
 }
 .seat .dealer-chip.hidden { display: none; }
+.seat .dealer-chip .dealer-letter {
+  display: block;
+  color: var(--vip-color);
+  line-height: 1;
+  transition: color .18s ease;
+}
+.seat .dealer-chip.dealer-chip-pro .dealer-letter { color: var(--pro-color); }
+.seat .dealer-chip.dealer-chip-vip .dealer-letter { color: var(--vip-color); }
+.seat .dealer-chip.dealer-chip-disabled { cursor: default; }
 
 .seat.left .dealer-chip { right: clamp(-26px, -3.4vmin, -22px); top: 28px; left: auto; }
 .seat.right .dealer-chip,
@@ -595,7 +607,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
 .seat .delta-text.positive { color: #4ae08a; }
 .seat .delta-text.negative { color: #e05a4a; }
 
-/* Delta inside pos-row (side seats: 1,2,3,5,6,7) */
 .seat .pos-row .delta-text {
   position: absolute;
   top: 50%;
@@ -604,7 +615,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
 .seat.left .pos-row .delta-text  { left: 100%; margin-left: 0px; }
 .seat.right .pos-row .delta-text { right: 100%; margin-right: 0px; }
 
-/* Delta inside stack-wrap (hero and top-center seat 4): left of stack */
 .seat .stack-wrap .delta-text {
   position: absolute;
   top: 50%;
@@ -614,7 +624,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
   left: auto;
 }
 
-/* Mobile only: bring delta closer to stack by 4px (from 4px gap to 0) */
 @media (max-width: 767px) {
   .seat .stack-wrap .delta-text {
     margin-right: 0px;
@@ -906,6 +915,8 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
   cursor: pointer !important;
   pointer-events: auto !important;
 }
+#hn-restart.nav-restart-pending-vip { color: var(--vip-color) !important; }
+#hn-restart.nav-restart-pending-pro { color: var(--pro-color) !important; }
 
 #hand-nav .nav-svg {
   display: block;
@@ -992,23 +1003,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
   height: 16px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%,
-    #e0e0e0 0%,
-    #c8c8c8 15%,
-    #b0b0b0 30%,
-    #989898 45%,
-    #808080 60%,
-    #686868 75%,
-    #505050 88%,
-    #404040 100%);
-  border: 1px solid #606060;
-  box-shadow: 0 2px 4px rgba(0,0,0,.7);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  transition: transform .08s ease, filter .08s ease;
-  z-index: 2;
-}
-#raise-slider-thumb.top-bots {
-  background: radial-gradient(circle at 35% 35%,
     #fff9dc 0%,
     #fdefb8 15%,
     #f9e492 30%,
@@ -1018,6 +1012,11 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
     #c3981f 88%,
     #b8860b 100%);
   border: 1px solid #8a6508;
+  box-shadow: 0 2px 4px rgba(0,0,0,.7);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform .08s ease, filter .08s ease;
+  z-index: 2;
 }
 #raise-slider-thumb.pressed {
   transform: translate(-50%, -50%) scale(0.85);
@@ -2866,6 +2865,7 @@ const VipBots = (() => {
 
 })();
 
+window.VipBots = VipBots;
 window.Bots = VipBots;
 </script>
 
@@ -3170,6 +3170,7 @@ const UI = (() => {
     updateBoardAreaOffset();
     alignPercentBlockBottom();
     bindTimerZoneTap();
+    applyDealerChipIndicator();
   }
 
   function recalcSeatAssignments(state) {
@@ -3209,7 +3210,7 @@ const UI = (() => {
 
     if (player.isHero) {
       seat.innerHTML = `
-        <div class="dealer-chip hidden" data-role="btn">D</div>
+        <div class="dealer-chip hidden" data-role="btn"><span class="dealer-letter">D</span></div>
         <div class="seat-cards" data-role="cards">
           <div class="hero-timer-wrap" data-role="timer" data-state="off">
             <svg class="hero-timer-svg" viewBox="0 0 40 40">
@@ -3233,7 +3234,7 @@ const UI = (() => {
       `;
     } else {
       seat.innerHTML = `
-        <div class="dealer-chip hidden" data-role="btn">D</div>
+        <div class="dealer-chip hidden" data-role="btn"><span class="dealer-letter">D</span></div>
         <div class="seat-cards" data-role="cards"></div>
         <div class="pos-row">
           <span class="pos-name" data-role="pos">—</span>
@@ -3288,6 +3289,7 @@ const UI = (() => {
     updateBoardAreaOffset();
     alignPercentBlockBottom();
     bindTimerZoneTap();
+    applyDealerChipIndicator();
   }
 
   function renderActionBadge(p, seat) {
@@ -3521,6 +3523,25 @@ const UI = (() => {
       return bbVal.toFixed(1) + ' BB';
     }
     return amount.toLocaleString('ru-RU');
+  }
+
+  function applyDealerChipIndicator() {
+    const chips = document.querySelectorAll('.seat .dealer-chip');
+    const level = (window.__ppCurrentBotsLevel === 'top') ? 'pro' : 'vip';
+    const pending = window.__ppPendingBotsLevel || 'none';
+    let display = level;
+    if (pending === 'to-vip') display = 'vip';
+    else if (pending === 'to-pro') display = 'pro';
+    chips.forEach(chip => {
+      chip.classList.remove('dealer-chip-pro', 'dealer-chip-vip');
+      if (display === 'pro') chip.classList.add('dealer-chip-pro');
+      else chip.classList.add('dealer-chip-vip');
+    });
+    if (el.hnRestart) {
+      el.hnRestart.classList.remove('nav-restart-pending-vip', 'nav-restart-pending-pro');
+      if (pending === 'to-vip') el.hnRestart.classList.add('nav-restart-pending-vip');
+      else if (pending === 'to-pro') el.hnRestart.classList.add('nav-restart-pending-pro');
+    }
   }
   
   function setHeroActionsActive(active) {
@@ -4248,6 +4269,7 @@ const UI = (() => {
     relayoutSlider,
     setHuGlow,
     bindTimerZoneTap,
+    applyDealerChipIndicator,
     getSliderState: function() { return sliderState; },
     getPercentButtonsContext: function() { return percentButtonsContext; }
   };
@@ -4353,22 +4375,16 @@ const Log = (() => {
   }
 
   function botsLevelInfo() {
+    const current = window.__ppCurrentBotsLevel || 'vip';
+    const pending = window.__ppPendingBotsLevel || 'none';
     const b = (typeof window !== 'undefined') ? window.Bots : null;
-    if (!b) return { level: 'missing', version: '—', source: '—', loadedJs: false, missingFns: ['Bots object absent'] };
-    const level = b.__level || 'unknown';
-    const version = b.__version || '—';
-    const source = b.__source || '—';
-    const loadedJs = (typeof window.__botsJsLoaded !== 'undefined') ? !!window.__botsJsLoaded : false;
-    const required = [
-      'decidePreflop', 'decidePostflop', 'assignBotTypes', 'assignBotsToSeats',
-      'updateModel', 'updateMeta', 'getRead', 'reset', 'dumpStats',
-      'getProfile', 'getTypeMeta', 'preflopStrength', 'postflopStrength', 'Texture'
-    ];
-    const missing = [];
-    for (const fn of required) {
-      if (typeof b[fn] !== 'function' && typeof b[fn] !== 'object') missing.push(fn);
-    }
-    return { level, version, source, loadedJs, missingFns: missing };
+    const proAvailable = !!(b && b.__source === 'bots.js' && window.__botsJsLoaded === true);
+    return {
+      current: current,
+      pending: pending,
+      proAvailable: proAvailable,
+      version: (b && b.__version) ? b.__version : '—'
+    };
   }
 
   function buildReport(snap, meta) {
@@ -4377,11 +4393,11 @@ const Log = (() => {
     const bl = botsLevelInfo();
     L.push('=== THE POKER WAY — HAND LOG ===');
     L.push('Captured: ' + now.toLocaleString('en-US'));
-    L.push('Format version: v3');
-    L.push('Bots level: ' + bl.level + ' | version: ' + bl.version + ' | source: ' + bl.source);
-    L.push('Bots file loaded: ' + (bl.loadedJs ? 'yes' : 'no'));
+    L.push('Format version: v4');
+    L.push('Current bots: ' + bl.current);
+    L.push('Pending bots switch: ' + bl.pending);
+    L.push('PRO available: ' + (bl.proAvailable ? 'yes' : 'no') + ' | version ' + bl.version);
     L.push('Diagnostics source: bot');
-    if (bl.missingFns.length > 0) L.push('Bots missing interface: ' + bl.missingFns.join(', '));
     L.push('Hand number: #' + snap.handNumber);
     L.push('Blind level (index): ' + snap.levelIndex);
     L.push('Blinds: SB ' + snap.blinds.sb + ' / BB ' + snap.blinds.bb + (snap.blinds.ante > 0 ? ' / ante ' + snap.blinds.ante : ''));
@@ -4399,7 +4415,6 @@ const Log = (() => {
         ' | ' + p.name +
         ' | ' + (p.isHero ? 'HERO' : 'bot') +
         ' | type ' + type + ' | class ' + cls +
-        ' | botLevel ' + bl.level + ' | botVersion ' + bl.version +
         ' | position ' + (p.position || '—') +
         ' | stack ' + p.stack +
         (p.eliminated ? ' | ELIMINATED' : '') +
@@ -4444,9 +4459,7 @@ const Log = (() => {
         if (a.botCtx) {
           const c = a.botCtx;
           L.push('       [BOT DECISION — input]');
-          L.push('       type: ' + c.botType + ' / class ' + c.botClass +
-            ' | botLevel ' + (c.botLevel || bl.level) +
-            ' | botVersion ' + (c.botVersion || bl.version));
+          L.push('       type: ' + c.botType + ' / class ' + c.botClass);
           L.push('       position: ' + c.position + ' | stack BB: ' + fmtNum(c.stackBB) + ' | active: ' + c.numActive);
           L.push('       street: ' + streetRu(c.street) + ' | pot: ' + fmtNum(c.pot) + ' | to call: ' + fmtNum(c.toCall) +
             ' | min raise: ' + fmtNum(c.minRaise) + ' | current bet: ' + fmtNum(c.currentBet));
@@ -4462,41 +4475,6 @@ const Log = (() => {
             if (d.handName) L.push('       hand: ' + d.handName);
             if (d.chart) L.push('       chart: ' + d.chart);
             if (d.threshold !== undefined && d.threshold !== null) L.push('       threshold: ' + d.threshold);
-            if (d.eq !== undefined && d.eq !== null) L.push('       equity: ' + fmtEq(d.eq));
-            if (d.potOdds !== undefined && d.potOdds !== null) L.push('       pot odds: ' + fmtEq(d.potOdds));
-            if (d.adjPotOdds !== undefined && d.adjPotOdds !== null) L.push('       pot odds with ICM: ' + fmtEq(d.adjPotOdds));
-            if (d.icm) {
-              L.push('       ICM: bubble factor ' + fmtNum(d.icm.bubbleFactor) +
-                ' | players: ' + d.icm.playersLeft +
-                ' | prize spots: ' + d.icm.prizeSpots);
-            }
-            if (d.texture) {
-              L.push('       texture: wetness ' + fmtNum(d.texture.wet) +
-                ' | paired ' + (d.texture.paired ? 'yes' : 'no') +
-                ' | flush ' + (d.texture.flushPossible ? 'yes' : 'no') +
-                ' | straight ' + (d.texture.straightPossible ? 'yes' : 'no') +
-                ' | high card ' + d.texture.highCard);
-            }
-            if (d.oppRead) {
-              L.push('       read: hands ' + d.oppRead.hands +
-                ' | VPIP ' + fmtEq(d.oppRead.vpipRate) +
-                ' | PFR ' + fmtEq(d.oppRead.pfrRate) +
-                ' | fold ' + fmtEq(d.oppRead.foldRate) +
-                ' | aggression ' + fmtNum(d.oppRead.aggIndex));
-            }
-            if (d.plan) {
-              L.push('       plan: flop ' + d.plan.flop +
-                ' | turn-dry ' + d.plan.turnIfBlank +
-                ' | turn-wet ' + d.plan.turnIfWet +
-                ' | river ' + d.plan.riverIfCompleted);
-              if (d.planDecision) L.push('       plan decision: ' + d.planDecision);
-            }
-            if (d.profile) {
-              L.push('       profile: aggression ' + fmtNum(d.profile.aggression) +
-                ' | looseness ' + fmtNum(d.profile.looseness) +
-                ' | bluff ' + fmtNum(d.profile.bluff) +
-                ' | callThreshold ' + fmtNum(d.profile.callThreshold));
-            }
             if (d.reason) L.push('       RESULT: ' + d.reason);
           } else {
             L.push('       [DIAGNOSTICS MISSING — bot did not provide diagnostics]');
@@ -4512,13 +4490,6 @@ const Log = (() => {
           L.push('       stack before: ' + fmtNum(h.stackBefore) + ' | after: ' + fmtNum(h.stackAfter));
           L.push('       invested this street: ' + fmtNum(h.committedThisStreet) +
             ' | total: ' + fmtNum(h.committedTotal));
-          L.push('       quick bets: ' + (h.quickOptions || []).join(', '));
-          L.push('       slider: value ' + fmtNum(h.sliderValue) +
-            ' | call ' + fmtNum(h.sliderCall) +
-            ' | min raise ' + fmtNum(h.sliderMinRaise) +
-            ' | max ' + fmtNum(h.sliderMax));
-          L.push('       call button: ' + h.btnLabel + ' ' + h.btnAmount +
-            ' | mini amount: ' + h.miniAmount);
         }
       }
     }
@@ -4564,28 +4535,6 @@ const Log = (() => {
       (snap.blinds.ante > 0 ? ' (' + snap.blinds.ante + ')' : ''));
     L.push('Board on screen: ' + cardsStr(snap.board));
     L.push('');
-    L.push('Seats:');
-    for (const p of snap.players) {
-      const vis = 'seat ' + p.seatIndex;
-      const state = [];
-      if (p.folded) state.push('folded');
-      if (p.eliminated) state.push('eliminated');
-      if (p.acted) state.push('acted');
-      L.push('  ' + vis + ' | ' + p.name +
-        ' | position ' + (p.position || '—') +
-        ' | stack ' + p.stack +
-        ' | cards ' + (p.holeCards && p.holeCards.length ? cardsStr(p.holeCards) : '—') +
-        ' | ' + (state.length ? state.join(', ') : 'active') +
-        ' | delta: ' + (function() {
-          const payouts = (snap.showdownResults && snap.showdownResults.payouts) || {};
-          const payout = payouts[p.id] || 0;
-          const committed = p.committedTotal || 0;
-          if (payout > 0) return 'WIN +' + (payout - committed);
-          if (committed > 0) return 'LOSS -' + committed;
-          return '—';
-        })());
-    }
-    L.push('');
     L.push('Visual settings:');
     L.push('  card style: ' + (UI.settings ? UI.settings.cardStyle : '—'));
     L.push('  stack display: ' + (UI.settings ? UI.settings.stackDisplay : '—'));
@@ -4627,11 +4576,10 @@ const Log = (() => {
 
     L.push('=== THE POKER WAY — FULL APP LOG (SESSION) ===');
     L.push('Captured: ' + now.toLocaleString('en-US'));
-    L.push('Format version: v3');
-    L.push('Bots level: ' + bl.level + ' | version: ' + bl.version + ' | source: ' + bl.source);
-    L.push('Bots file loaded (bots.js): ' + (bl.loadedJs ? 'yes' : 'no'));
-    L.push('Bots replaced by bots.js: ' + (bl.source === 'bots.js' ? 'yes' : 'no'));
-    if (bl.missingFns.length > 0) L.push('Bots missing interface: ' + bl.missingFns.join(', '));
+    L.push('Format version: v4');
+    L.push('Current bots: ' + bl.current);
+    L.push('Pending bots switch: ' + bl.pending);
+    L.push('PRO available: ' + (bl.proAvailable ? 'yes' : 'no') + ' | version ' + bl.version);
     L.push('');
 
     L.push('--- ENVIRONMENT ---');
@@ -4656,7 +4604,9 @@ const Log = (() => {
 
     L.push('--- SESSION STATE ---');
     const s = app.session;
-    L.push('Bots level: ' + bl.level + ' (version ' + bl.version + ')');
+    L.push('Current bots: ' + bl.current);
+    L.push('Pending bots switch: ' + bl.pending);
+    L.push('PRO available: ' + (bl.proAvailable ? 'yes' : 'no'));
     L.push('active: ' + (s.active ? 'yes' : 'no'));
     L.push('isPaused: ' + (s.isPaused ? 'yes' : 'no'));
     L.push('waitingForHero: ' + (s.waitingForHero ? 'yes' : 'no'));
@@ -4667,23 +4617,7 @@ const Log = (() => {
     L.push('huAutoActive: ' + (s.huAutoActive ? 'yes' : 'no'));
     L.push('history.length: ' + (s.history ? s.history.length : 0));
     L.push('viewingIndex: ' + s.viewingIndex);
-    L.push('activeTimers:');
-    L.push('  autoNextTimerId: ' + (s.autoNextTimerId === null ? 'no' : 'yes'));
-    L.push('  botTimerId: ' + (s.botTimerId === null ? 'no' : 'yes'));
-    L.push('  revealTimerId: ' + (s.revealTimerId === null ? 'no' : 'yes'));
-    L.push('  streetEndTimerId: ' + (s.streetEndTimerId === null ? 'no' : 'yes'));
-    L.push('  heroTimerIntervalId: ' + (s.heroTimerIntervalId === null ? 'no' : 'yes'));
-    L.push('  heroTimerRemaining: ' + s.heroTimerRemaining);
-    L.push('  heroTimerTotal: ' + s.heroTimerTotal);
-    L.push('replay:');
-    L.push('  active: ' + (s.replay.active ? 'yes' : 'no'));
-    L.push('  paused: ' + (s.replay.paused ? 'yes' : 'no'));
-    L.push('  stepIndex: ' + s.replay.stepIndex);
-    L.push('  steps.length: ' + (s.replay.steps ? s.replay.steps.length : 0));
-    L.push('  timerId: ' + (s.replay.timerId === null ? 'no' : 'yes'));
-    L.push('');
     L.push('Mode: ' + (s.replay.active ? 'replay' : (s.viewingIndex >= 0 ? 'history' : 'live game')));
-    L.push('Final overlay open: ' + (UI.anyOverlayOpen() ? 'yes' : 'no'));
     L.push('');
 
     L.push('--- CURRENT TABLE STATE ---');
@@ -4692,47 +4626,19 @@ const Log = (() => {
       L.push('Table state missing');
     } else {
       L.push('Hand #' + st.handNumber + ' | level ' + st.levelIndex + ' | handsAtLevel ' + st.handsAtLevel);
-      L.push('Street: ' + st.street + ' | actingIndex: ' + st.actingIndex + ' | lastAggressorIndex: ' + (st.lastAggressorIndex === null ? '—' : st.lastAggressorIndex));
+      L.push('Street: ' + st.street + ' | actingIndex: ' + st.actingIndex);
       L.push('Button: ' + st.buttonIndex + ' | blinds SB ' + st.blinds.sb + ' / BB ' + st.blinds.bb + ' / ante ' + st.blinds.ante);
       L.push('Pot: ' + st.pot + ' | currentBet: ' + st.currentBet + ' | minRaise: ' + st.minRaise);
       L.push('Board: ' + (st.board && st.board.length ? st.board.map(c => c.rank + c.suit).join(' ') : 'empty'));
-      L.push('deckIdx: ' + st._deckIdx);
       L.push('handOver: ' + (st.handOver ? 'yes' : 'no') + ' | finalStreet: ' + (st.finalStreet || '—'));
       L.push('');
       L.push('Players:');
       for (const p of st.players) {
         L.push('  seat ' + p.seatIndex + ' | ' + p.name +
           ' | ' + (p.isHero ? 'HERO' : 'bot ' + (p.botType || '—') + ' / ' + (p.botClass || '—')) +
-          ' | botLevel ' + bl.level + ' | botVersion ' + bl.version +
           ' | position ' + (p.position || '—') +
           ' | stack ' + p.stack +
-          ' | cards ' + (p.holeCards && p.holeCards.length ? p.holeCards.map(c => c.rank + c.suit).join(' ') : '—') +
-          ' | folded ' + (p.folded ? 'yes' : 'no') +
-          ' | allIn ' + (p.allIn ? 'yes' : 'no') +
-          ' | eliminated ' + (p.eliminated ? 'yes' : 'no') +
-          ' | inHand ' + (p.inHand ? 'yes' : 'no') +
-          ' | acted ' + (p.acted ? 'yes' : 'no') +
-          ' | revealed ' + (p.revealed ? 'yes' : 'no') +
-          ' | lastAction ' + (p.lastAction || '—') +
-          ' | committedThisStreet ' + p.committedThisStreet +
-          ' | committedTotal ' + p.committedTotal +
-          ' | blindPaid ' + p.blindPaid +
-          ' | hasActedThisStreet ' + (p.hasActedThisStreet ? 'yes' : 'no') +
-          ' | heroFinishPlace ' + (p.heroFinishPlace || 0));
-      }
-      if (st.showdownResults) {
-        L.push('');
-        L.push('Showdown:');
-        L.push('  uncontested: ' + (st.showdownResults.uncontested ? 'yes' : 'no'));
-        L.push('  payouts: ' + safeJsonStringify(st.showdownResults.payouts));
-        L.push('  pots: ' + safeJsonStringify(st.showdownResults.pots));
-      }
-      L.push('');
-      L.push('actionLog (' + (st.actionLog ? st.actionLog.length : 0) + ' entries, showing last 10):');
-      const log = st.actionLog || [];
-      const tail = log.slice(-10);
-      for (const a of tail) {
-        L.push('  ' + (a.street || '?') + ' | seat ' + a.playerIndex + ' | ' + a.actionType + ' ' + (a.amount || 0) + ' | potAfter ' + (a.potAfter !== undefined ? a.potAfter : '—'));
+          ' | cards ' + (p.holeCards && p.holeCards.length ? p.holeCards.map(c => c.rank + c.suit).join(' ') : '—'));
       }
     }
     L.push('');
@@ -4747,117 +4653,21 @@ const Log = (() => {
     L.push('hideHeroHand: ' + (settings.hideHeroHand ? 'yes' : 'no'));
     L.push('hideBoardCards: ' + (settings.hideBoardCards ? 'yes' : 'no'));
     L.push('showAllShowdown: ' + (settings.showAllShowdown ? 'yes' : 'no'));
-    try {
-      const raw = localStorage.getItem('pranaPokerSettings.v1');
-      L.push('localStorage size: ' + (raw ? raw.length : 0) + ' bytes');
-    } catch (e) {
-      L.push('localStorage: unavailable');
-    }
     L.push('');
 
     L.push('--- UI STATE ---');
     L.push('hero-actions inactive: ' + (UI.el.heroActions && UI.el.heroActions.classList.contains('inactive') ? 'yes' : 'no'));
-    L.push('quick-percent-list inactive: ' + (UI.el.quickPercentList && UI.el.quickPercentList.classList.contains('inactive') ? 'yes' : 'no'));
     if (UI.el.btnFold) L.push('Fold: disabled ' + (UI.el.btnFold.disabled ? 'yes' : 'no'));
     if (UI.el.btnCheck) L.push('Check: disabled ' + (UI.el.btnCheck.disabled ? 'yes' : 'no'));
     if (UI.el.btnCall) L.push('Call: disabled ' + (UI.el.btnCall.disabled ? 'yes' : 'no'));
-    if (UI.el.btnCheck) L.push('Check history-copy-active: ' + (UI.el.btnCheck.classList.contains('history-copy-active') ? 'yes' : 'no'));
-    if (UI.el.btnFold) L.push('Fold history-copy-active: ' + (UI.el.btnFold.classList.contains('history-copy-active') ? 'yes' : 'no'));
-    if (UI.el.btnCall) L.push('Call history-copy-active: ' + (UI.el.btnCall.classList.contains('history-copy-active') ? 'yes' : 'no'));
-
-    const slider = UI.getSliderState ? UI.getSliderState() : null;
-    if (slider) {
-      L.push('slider.active: ' + (slider.active ? 'yes' : 'no'));
-      L.push('slider.callValue: ' + slider.callValue);
-      L.push('slider.minRaiseValue: ' + slider.minRaiseValue);
-      L.push('slider.maxValue: ' + slider.maxValue);
-      L.push('slider.stepValue: ' + slider.stepValue);
-      L.push('slider.currentValue: ' + slider.currentValue);
-    }
-    if (UI.el.quickPercentList) {
-      const qbtns = UI.el.quickPercentList.querySelectorAll('button');
-      L.push('Quick bets: ' + qbtns.length);
-      let i = 0;
-      qbtns.forEach(btn => {
-        i++;
-        const label = btn.querySelector('.label');
-        const value = btn.querySelector('.value');
-        L.push('  #' + i + ' label ' + (label ? label.textContent : '—') +
-          ' | value ' + (value ? value.textContent : '—') +
-          ' | target ' + (btn.dataset ? btn.dataset.target : '—') +
-          ' | disabled ' + (btn.disabled ? 'yes' : 'no'));
-      });
-    }
-    if (UI.el.hnPrev) L.push('hn-prev disabled: ' + (UI.el.hnPrev.disabled ? 'yes' : 'no'));
-    if (UI.el.hnNext) L.push('hn-next disabled: ' + (UI.el.hnNext.disabled ? 'yes' : 'no'));
-    if (UI.el.hnReplay) L.push('hn-replay disabled: ' + (UI.el.hnReplay.disabled ? 'yes' : 'no') + ' | text ' + UI.el.hnReplay.textContent);
-    if (UI.el.hnResume) L.push('hn-resume disabled: ' + (UI.el.hnResume.disabled ? 'yes' : 'no'));
-    if (UI.el.hnRestart) L.push('hn-restart classes: ' + UI.el.hnRestart.className);
-    L.push('');
-
-    L.push('--- HERO TIMER ---');
-    const heroSeat = document.getElementById('seat-hero');
-    if (heroSeat) {
-      const wrap = heroSeat.querySelector('.hero-timer-wrap');
-      const zone = heroSeat.querySelector('.hero-timer-zone');
-      if (wrap) L.push('data-state: ' + wrap.getAttribute('data-state'));
-      if (zone) L.push('zone.disabled: ' + (zone.classList.contains('disabled') ? 'yes' : 'no'));
-      const num = wrap ? wrap.querySelector('.timer-num') : null;
-      if (num) L.push('num: ' + num.textContent);
-      const fill = wrap ? wrap.querySelector('.timer-fill') : null;
-      if (fill) L.push('fill.offset: ' + fill.style.strokeDashoffset);
-    }
-    L.push('');
-
-    L.push('--- DEALER CHIPS ON SEATS ---');
-    if (UI.el.seats) {
-      const seats = UI.el.seats.querySelectorAll('.seat');
-      seats.forEach(seat => {
-        const btn = seat.querySelector('[data-role="btn"]');
-        const pos = seat.querySelector('[data-role="pos"]');
-        const stack = seat.querySelector('[data-role="stack"]');
-        L.push('  ' + seat.id +
-          ' | hidden-chip ' + (btn ? (btn.classList.contains('hidden') ? 'yes' : 'no') : '—') +
-          ' | pos ' + (pos ? pos.textContent : '—') +
-          ' | stack ' + (stack ? stack.textContent : '—'));
-      });
-    }
     L.push('');
 
     L.push('--- MODULES ---');
-    L.push('Bots.__level: ' + bl.level);
-    L.push('Bots.__version: ' + bl.version);
-    L.push('Bots.__source: ' + bl.source);
-    L.push('bots.js loaded: ' + (bl.loadedJs ? 'yes' : 'no'));
-    L.push('Bots replaced by bots.js: ' + (bl.source === 'bots.js' ? 'yes' : 'no'));
-    L.push('Missing interface functions: ' + (bl.missingFns.length === 0 ? 'none' : bl.missingFns.join(', ')));
-    if (bl.source !== 'bots.js' && bl.loadedJs) L.push('WARNING: bots.js loaded but did not replace Bots (source != bots.js).');
-    L.push('Bots TYPES: ' + (window.Bots && window.Bots.TYPES ? Object.keys(window.Bots.TYPES).join(', ') : '—'));
-    L.push('Bots PROFILES: ' + (window.Bots && window.Bots.PROFILES ? Object.keys(window.Bots.PROFILES).join(', ') : '—'));
-    L.push('');
-
-    L.push('--- ENGINE CONSTANTS ---');
-    L.push('STARTING_STACK: ' + Engine.STARTING_STACK);
-    L.push('SEATS: ' + Engine.SEATS);
-    L.push('STREETS: ' + Engine.STREETS.join(' → '));
-    L.push('BLIND_LEVELS (' + Engine.BLIND_LEVELS.length + '):');
-    for (let i = 0; i < Engine.BLIND_LEVELS.length; i++) {
-      const b = Engine.BLIND_LEVELS[i];
-      L.push('  ' + i + ': SB ' + b.sb + ' / BB ' + b.bb + (b.ante > 0 ? ' / ante ' + b.ante : ''));
-    }
-    L.push('POSITION_LABELS: ' + Object.keys(Engine.POSITION_LABELS).join(', '));
-    L.push('');
-
-    L.push('--- PERFORMANCE / RESOURCES ---');
-    try {
-      if (performance && performance.memory) {
-        L.push('JS heap: used ' + Math.round(performance.memory.usedJSHeapSize / 1024) + ' KB' +
-          ' / total ' + Math.round(performance.memory.totalJSHeapSize / 1024) + ' KB' +
-          ' / limit ' + Math.round(performance.memory.jsHeapSizeLimit / 1024) + ' KB');
-      } else {
-        L.push('JS heap: unavailable');
-      }
-    } catch (e) { L.push('JS heap: error'); }
+    L.push('window.Bots.__level: ' + ((window.Bots && window.Bots.__level) || '—'));
+    L.push('window.Bots.__version: ' + ((window.Bots && window.Bots.__version) || '—'));
+    L.push('window.Bots.__source: ' + ((window.Bots && window.Bots.__source) || '—'));
+    L.push('window.__botsJsLoaded: ' + (window.__botsJsLoaded ? 'yes' : 'no'));
+    L.push('window.VipBots available: ' + (window.VipBots ? 'yes' : 'no'));
     L.push('');
 
     L.push('--- SESSION ERRORS ---');
@@ -4868,7 +4678,6 @@ const Log = (() => {
       L.push('Total: ' + errs.length);
       for (const e of errs) {
         L.push('  [' + new Date(e.ts).toLocaleString('en-US') + '] ' + e.kind + ': ' + e.message);
-        if (e.source) L.push('    source: ' + e.source + ':' + e.line + ':' + e.col);
         if (e.stack) L.push('    stack: ' + String(e.stack).split('\n').slice(0, 5).join(' | '));
       }
     }
@@ -5098,7 +4907,18 @@ const Log = (() => {
   const el = {};
   const DOUBLE_TAP_WINDOW = 500;
 
+  function detectProAvailable() {
+    const b = window.Bots;
+    return !!(b && b.__source === 'bots.js' && window.__botsJsLoaded === true);
+  }
+
+  function detectInitialBotsLevel() {
+    return detectProAvailable() ? 'top' : 'vip';
+  }
+
   function onDomReady() {
+    window.__ppCurrentBotsLevel = detectInitialBotsLevel();
+    window.__ppPendingBotsLevel = 'none';
     UI.init();
     cacheDom();
     bindGlobalHandlers();
@@ -5107,6 +4927,7 @@ const Log = (() => {
     bindBoardCardsTap();
     bindCardLongPress();
     bindHistoryCopyZones();
+    bindDealerChipTap();
     initDonateModule();
     window.addEventListener('resize', () => {
       UI.updateBoardAreaOffset();
@@ -5124,7 +4945,7 @@ const Log = (() => {
     UI.setHeroTimerZoneEnabled(true);
     UI.setHeroTimerReady();
     updateHuGlowFromState();
-    applyBotsLevelIndicator();
+    UI.applyDealerChipIndicator();
     startNewSession();
     openDonateOverlay(false);
   }
@@ -5133,14 +4954,6 @@ const Log = (() => {
     window.addEventListener('DOMContentLoaded', onDomReady);
   } else {
     onDomReady();
-  }
-
-  function applyBotsLevelIndicator() {
-    const thumb = document.getElementById('raise-slider-thumb');
-    if (!thumb) return;
-    const b = window.Bots;
-    if (b && b.__level === 'top') thumb.classList.add('top-bots');
-    else thumb.classList.remove('top-bots');
   }
 
   function cacheDom() {
@@ -5264,6 +5077,70 @@ const Log = (() => {
       e.stopPropagation();
       copyPokerStarsHistory();
     }, { passive: false, capture: true });
+  }
+
+  function bindDealerChipTap() {
+    if (!el.seats) return;
+    let lastTapTs = 0;
+    const TAP_COOLDOWN = 300;
+    const handleDealerTap = (e) => {
+      const chip = e.target.closest('.seat .dealer-chip');
+      if (!chip) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const now = Date.now();
+      if (now - lastTapTs < TAP_COOLDOWN) return;
+      lastTapTs = now;
+      handleDealerChipTap();
+    };
+    el.seats.addEventListener('click', handleDealerTap);
+    el.seats.addEventListener('touchend', handleDealerTap, { passive: false });
+  }
+
+  function handleDealerChipTap() {
+    if (inHistoryMode()) return;
+    if (session.replay.active) return;
+    if (!detectProAvailable()) return;
+
+    const current = window.__ppCurrentBotsLevel || 'vip';
+    const pending = window.__ppPendingBotsLevel || 'none';
+
+    let nextPending;
+    if (pending === 'none') {
+      nextPending = (current === 'vip') ? 'to-pro' : 'to-vip';
+    } else if (pending === 'to-pro') {
+      nextPending = 'to-vip';
+    } else if (pending === 'to-vip') {
+      nextPending = 'to-pro';
+    } else {
+      nextPending = 'none';
+    }
+
+    if (nextPending === 'to-pro' && current === 'top') nextPending = 'none';
+    if (nextPending === 'to-vip' && current === 'vip') nextPending = 'none';
+
+    window.__ppPendingBotsLevel = nextPending;
+    UI.applyDealerChipIndicator();
+  }
+
+  function clearPendingOnHandEnd() {
+    if ((window.__ppPendingBotsLevel || 'none') !== 'none') {
+      window.__ppPendingBotsLevel = 'none';
+      UI.applyDealerChipIndicator();
+    }
+  }
+
+  function applyPendingBotsLevelOnRestart() {
+    const pending = window.__ppPendingBotsLevel || 'none';
+    if (pending === 'to-pro') window.__ppCurrentBotsLevel = 'top';
+    else if (pending === 'to-vip') window.__ppCurrentBotsLevel = 'vip';
+    window.__ppPendingBotsLevel = 'none';
+  }
+
+  function getActiveBots() {
+    const current = window.__ppCurrentBotsLevel || 'vip';
+    if (current === 'top' && detectProAvailable()) return window.Bots;
+    return window.VipBots || window.Bots;
   }
 
   function updateHuGlowFromState() {
@@ -5554,6 +5431,7 @@ const Log = (() => {
     if (!el.seats) return;
     el.seats.addEventListener('touchend', (e) => {
       if (e.target.closest('.hero-timer-zone')) return;
+      if (e.target.closest('.dealer-chip')) return;
       const stackEl = e.target.closest('.stack');
       if (stackEl) {
         e.stopPropagation(); e.preventDefault();
@@ -5577,6 +5455,7 @@ const Log = (() => {
     el.seats.addEventListener('click', (e) => {
       if (e.pointerType && e.pointerType !== 'mouse') return;
       if (e.target.closest('.hero-timer-zone')) return;
+      if (e.target.closest('.dealer-chip')) return;
       const stackEl = e.target.closest('.stack');
       if (stackEl) {
         e.stopPropagation(); e.preventDefault();
@@ -5664,6 +5543,8 @@ const Log = (() => {
     session.replay.pausedByWindow = false;
     session.huAutoActive = false;
 
+    applyPendingBotsLevelOnRestart();
+
     UI.resetSeatAssignments();
 
     UI.hideFinalOverlay();
@@ -5672,12 +5553,12 @@ const Log = (() => {
     UI.updateHistoryInfo(0, 0, false);
     UI.clearWinnerHighlights();
     UI.setReplayButtonState('replay');
+    UI.applyDealerChipIndicator();
 
     syncHistoryFlags();
     UI.setHeroTimerZoneEnabled(true);
     UI.setHeroTimerReady();
     updateHuGlowFromState();
-    applyBotsLevelIndicator();
 
     startNewSession();
   }
@@ -5704,14 +5585,15 @@ const Log = (() => {
     session.huAutoActive = false;
 
     UI.resetSeatAssignments();
-    applyBotsLevelIndicator();
+    UI.applyDealerChipIndicator();
 
-    const botTypes = window.Bots.assignBotTypes();
-    const shuffledTypes = window.Bots.assignBotsToSeats(botTypes);
+    const activeBots = getActiveBots();
+    const botTypes = activeBots.assignBotTypes();
+    const shuffledTypes = activeBots.assignBotsToSeats(botTypes);
 
     const players = [{ id: 'hero', name: 'Hero', isHero: true, botType: null, botClass: null, stack: Engine.STARTING_STACK }];
     for (let i = 0; i < 7; i++) {
-      const t = window.Bots.TYPES[shuffledTypes[i]];
+      const t = activeBots.TYPES[shuffledTypes[i]];
       players.push({
         id: 'bot' + (i + 1),
         name: 'Player_' + (i + 1),
@@ -5925,14 +5807,7 @@ const Log = (() => {
       stackAfter: heroBefore.stack,
       committedThisStreet: heroBefore.committedThisStreet,
       committedTotal: heroBefore.committedTotal,
-      quickOptions,
-      sliderValue: action.amount || 0,
-      sliderCall: 0,
-      sliderMinRaise: 0,
-      sliderMax: stackBefore,
-      btnLabel: 'Call',
-      btnAmount: '',
-      miniAmount: ''
+      quickOptions
     };
     pushActionLog(state, session.heroIndex, action.type, action.amount || 0, { heroCtx });
     UI.updateSeats(state);
@@ -5945,15 +5820,16 @@ const Log = (() => {
   }
 
   function decideBotAction(bot, ctx) {
+    const activeBots = getActiveBots();
     const isPreflop = ctx.street === 'preflop';
     let result;
     try {
-      if (isPreflop && typeof window.Bots.decidePreflop === 'function') {
-        result = window.Bots.decidePreflop(ctx);
-      } else if (!isPreflop && typeof window.Bots.decidePostflop === 'function') {
-        result = window.Bots.decidePostflop(ctx);
-      } else if (typeof window.Bots.decide === 'function') {
-        result = window.Bots.decide(ctx);
+      if (isPreflop && typeof activeBots.decidePreflop === 'function') {
+        result = activeBots.decidePreflop(ctx);
+      } else if (!isPreflop && typeof activeBots.decidePostflop === 'function') {
+        result = activeBots.decidePostflop(ctx);
+      } else if (typeof activeBots.decide === 'function') {
+        result = activeBots.decide(ctx);
       } else {
         result = { action: 'fold', amount: 0 };
       }
@@ -6050,12 +5926,10 @@ const Log = (() => {
 
   function buildBotLogCtx(bot, ctx, finalAction, botResult) {
     const state = session.state;
-    const prof = window.Bots.PROFILES[bot.botType] || null;
+    const activeBots = getActiveBots();
+    const prof = activeBots.PROFILES[bot.botType] || null;
     const allCards = [...bot.holeCards, ...state.board];
     const handScore = allCards.length >= 5 ? Engine.evaluateHand(allCards) : null;
-    const strength = handScore ? window.Bots.postflopStrength(handScore) : (bot.holeCards.length === 2 ? window.Bots.preflopStrength(bot.holeCards[0], bot.holeCards[1]) : 0);
-    const level = (window.Bots && window.Bots.__level) ? window.Bots.__level : 'unknown';
-    const version = (window.Bots && window.Bots.__version) ? window.Bots.__version : '—';
     const diagnostics = (botResult && botResult.diagnostics) ? botResult.diagnostics : null;
     const reasonParts = [];
     reasonParts.push('action: ' + finalAction.type + (finalAction.amount ? ' ' + finalAction.amount : ''));
@@ -6064,8 +5938,6 @@ const Log = (() => {
     return {
       botType: bot.botType,
       botClass: bot.botClass,
-      botLevel: level,
-      botVersion: version,
       position: bot.position,
       stackBB: bot.stack / state.blinds.bb,
       numActive: ctx.numActive,
@@ -6080,12 +5952,7 @@ const Log = (() => {
       holeCards: bot.holeCards,
       board: state.board,
       handName: handScore ? handScore.name : '—',
-      handStrength: strength,
       isAggressor: ctx.isAggressor,
-      oppName: raiserNameHelper(state),
-      oppPosition: ctx.oppPosition,
-      oppStackBB: ctx.oppStackBB,
-      oppLastAction: ctx.oppLastAction,
       profile: prof ? {
         aggression: prof.aggression,
         looseness: prof.looseness,
@@ -6095,12 +5962,6 @@ const Log = (() => {
       diagnostics,
       reason
     };
-  }
-
-  function raiserNameHelper(state) {
-    if (state.lastAggressorIndex === null) return null;
-    const r = state.players[state.lastAggressorIndex];
-    return r ? r.name : null;
   }
 
   function pushActionLog(state, playerIndex, actionType, amount, extra) {
@@ -6188,12 +6049,13 @@ const Log = (() => {
       actionLog: (state.actionLog || []).map(a => ({ ...a }))
     };
 
+    const activeBots = getActiveBots();
     for (const p of state.players) {
       if (!p.botType) continue;
-      try { if (typeof window.Bots.updateModel === 'function') window.Bots.updateModel(p.id, snapForModel); } catch (e) {}
+      try { if (typeof activeBots.updateModel === 'function') activeBots.updateModel(p.id, snapForModel); } catch (e) {}
       try {
-        const prof = window.Bots.PROFILES[p.botType];
-        if (prof && typeof window.Bots.updateMeta === 'function') window.Bots.updateMeta(p.id, prof);
+        const prof = activeBots.PROFILES[p.botType];
+        if (prof && typeof activeBots.updateMeta === 'function') activeBots.updateMeta(p.id, prof);
       } catch (e) {}
     }
 
@@ -6238,6 +6100,7 @@ const Log = (() => {
     session.autoNextTimerId = setTimeout(() => {
       if (!session.active || session.viewingIndex >= 0) return;
       if (session.isPaused || session.replay.active) return;
+      clearPendingOnHandEnd();
       const period = UI.settings.blindGrowthHands || 10;
       state.handsAtLevel++;
       if (state.handsAtLevel >= period) {
@@ -6710,6 +6573,7 @@ const Log = (() => {
         session.autoNextTimerId = setTimeout(() => {
           if (!session.active || session.viewingIndex >= 0) return;
           if (session.isPaused || session.replay.active) return;
+          clearPendingOnHandEnd();
           const period = UI.settings.blindGrowthHands || 10;
           state.handsAtLevel++;
           if (state.handsAtLevel >= period) {
