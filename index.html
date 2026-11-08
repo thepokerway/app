@@ -992,6 +992,23 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
   height: 16px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%,
+    #e0e0e0 0%,
+    #c8c8c8 15%,
+    #b0b0b0 30%,
+    #989898 45%,
+    #808080 60%,
+    #686868 75%,
+    #505050 88%,
+    #404040 100%);
+  border: 1px solid #606060;
+  box-shadow: 0 2px 4px rgba(0,0,0,.7);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform .08s ease, filter .08s ease;
+  z-index: 2;
+}
+#raise-slider-thumb.top-bots {
+  background: radial-gradient(circle at 35% 35%,
     #fff9dc 0%,
     #fdefb8 15%,
     #f9e492 30%,
@@ -1001,11 +1018,6 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
     #c3981f 88%,
     #b8860b 100%);
   border: 1px solid #8a6508;
-  box-shadow: 0 2px 4px rgba(0,0,0,.7);
-  transform: translate(-50%, -50%);
-  pointer-events: none;
-  transition: transform .08s ease, filter .08s ease;
-  z-index: 2;
 }
 #raise-slider-thumb.pressed {
   transform: translate(-50%, -50%) scale(0.85);
@@ -2509,430 +2521,24 @@ const Engine = (() => {
   };
 
 })();
-  const Math2 = (() => {
+
+const VipBots = (() => {
 
   const R = Engine.RANK_VALUE;
-
-  function equityVsRange(heroHole, board, oppRange, iterations) {
-    if (!heroHole || heroHole.length !== 2) return 0.5;
-    const usedIds = new Set();
-    for (const c of heroHole) usedIds.add(c.rank + c.suit);
-    for (const c of board) usedIds.add(c.rank + c.suit);
-
-    let range = oppRange;
-    if (!range || range.length === 0) {
-      range = null;
-    } else {
-      range = range.filter(h => {
-        if (!h || h.length !== 2) return false;
-        if (usedIds.has(h[0].rank + h[0].suit)) return false;
-        if (usedIds.has(h[1].rank + h[1].suit)) return false;
-        return true;
-      });
-      if (range.length === 0) range = null;
-    }
-
-    const fullDeck = [];
-    for (const s of Engine.SUITS) {
-      for (const r of Engine.RANKS) {
-        const key = r + s;
-        if (usedIds.has(key)) continue;
-        fullDeck.push({ rank: r, suit: s });
-      }
-    }
-
-    let wins = 0;
-    let ties = 0;
-    const needBoard = 5 - board.length;
-
-    for (let it = 0; it < iterations; it++) {
-      let oppHole;
-      if (range) {
-        const pick = range[Engine.cryptoRandomInt(range.length)];
-        oppHole = [pick[0], pick[1]];
-      } else {
-        const i1 = Engine.cryptoRandomInt(fullDeck.length);
-        let i2 = Engine.cryptoRandomInt(fullDeck.length - 1);
-        if (i2 >= i1) i2++;
-        oppHole = [fullDeck[i1], fullDeck[i2]];
-      }
-
-      const oppKeys = new Set([oppHole[0].rank + oppHole[0].suit, oppHole[1].rank + oppHole[1].suit]);
-      const pool = [];
-      for (const c of fullDeck) {
-        if (oppKeys.has(c.rank + c.suit)) continue;
-        pool.push(c);
-      }
-
-      const simBoard = board.slice();
-      const poolCopy = pool.slice();
-      for (let i = 0; i < needBoard; i++) {
-        const idx = Engine.cryptoRandomInt(poolCopy.length);
-        simBoard.push(poolCopy[idx]);
-        poolCopy.splice(idx, 1);
-      }
-
-      const heroScore = Engine.evaluateHand([...heroHole, ...simBoard]);
-      const oppScore = Engine.evaluateHand([...oppHole, ...simBoard]);
-      if (!heroScore || !oppScore) continue;
-
-      const cmp = Engine.compareScores(heroScore, oppScore);
-      if (cmp > 0) wins++;
-      else if (cmp === 0) ties++;
-    }
-
-    return (wins + ties * 0.5) / iterations;
-  }
-
-  function potOdds(callAmount, pot) {
-    const total = pot + callAmount;
-    if (total <= 0) return 0;
-    return callAmount / total;
-  }
-
-  function blockerEffect(heroHole, oppRange) {
-    if (!oppRange || oppRange.length === 0) return 0;
-    const heroKeys = new Set([heroHole[0].rank + heroHole[0].suit, heroHole[1].rank + heroHole[1].suit]);
-    let blocked = 0;
-    for (const hand of oppRange) {
-      if (!hand || hand.length !== 2) continue;
-      if (heroKeys.has(hand[0].rank + hand[0].suit) || heroKeys.has(hand[1].rank + hand[1].suit)) blocked++;
-    }
-    return blocked / oppRange.length;
-  }
-
-  function buildOpponentRange(actionType, street, position, stackBB) {
-    const allHands = [];
-    for (let i = 0; i < Engine.RANKS.length; i++) {
-      for (let j = i; j < Engine.RANKS.length; j++) {
-        const r1 = Engine.RANKS[i], r2 = Engine.RANKS[j];
-        if (i === j) {
-          allHands.push([{ rank: r1, suit: 's' }, { rank: r2, suit: 'h' }]);
-          continue;
-        }
-        const v1 = R[r1], v2 = R[r2];
-        const hi = v1 > v2 ? r1 : r2;
-        const lo = v1 > v2 ? r2 : r1;
-        allHands.push([{ rank: hi, suit: 's' }, { rank: lo, suit: 's' }]);
-        allHands.push([{ rank: hi, suit: 's' }, { rank: lo, suit: 'h' }]);
-      }
-    }
-
-    let threshold = 0.35;
-    if (actionType === 'raise' || actionType === 'allin' || actionType === 'bet') threshold = 0.65;
-    if (street === 'preflop' && (actionType === 'raise' || actionType === 'bet')) threshold = 0.72;
-    if (actionType === 'call') threshold = 0.30;
-    if (actionType === 'check') threshold = 0.10;
-    if (stackBB && stackBB < 15) threshold = Math.max(0.20, threshold - 0.25);
-
-    const filtered = [];
-    for (const hand of allHands) {
-      const s = Bots.preflopStrength(hand[0], hand[1]);
-      if (s >= threshold) filtered.push(hand);
-    }
-    return filtered.length > 0 ? filtered : allHands.slice(0, 20);
-  }
-
-  return { equityVsRange, potOdds, blockerEffect, buildOpponentRange };
-
-})();
-
-const ICM = (() => {
-
-  const PRIZE_STRUCTURE = [50, 30, 20];
-
-  function bubbleFactor(stacks, playerIndex, playersLeft, prizeSpots) {
-    if (playersLeft <= prizeSpots) return 1;
-    const totalStacks = stacks.reduce((s, v) => s + v, 0);
-    if (totalStacks <= 0) return 1;
-    const myStack = stacks[playerIndex];
-    const avgStack = totalStacks / playersLeft;
-    const stackRatio = myStack / avgStack;
-    const proximityToBubble = (playersLeft - prizeSpots) / Math.max(1, playersLeft);
-    const distanceFromBubble = 1 - proximityToBubble;
-    let bf = 1 + distanceFromBubble * 1.5;
-    if (stackRatio < 1) bf += (1 - stackRatio) * 0.5;
-    bf = Math.min(3.0, Math.max(1.0, bf));
-    return bf;
-  }
-
-  return { PRIZE_STRUCTURE, bubbleFactor };
-
-})();
-
-const Texture = (() => {
-
-  const R = Engine.RANK_VALUE;
-
-  function analyze(board) {
-    if (!board || board.length === 0) {
-      return { wet: 0, paired: false, flushPossible: false, straightPossible: false, highCard: 0, flushSuit: null, suitedCount: 0 };
-    }
-
-    const values = board.map(c => R[c.rank]);
-    const suits = board.map(c => c.suit);
-    const sorted = values.slice().sort((a, b) => b - a);
-    const highCard = sorted[0] || 0;
-
-    const freq = {};
-    for (const v of values) freq[v] = (freq[v] || 0) + 1;
-    let paired = Object.values(freq).some(v => v >= 2);
-
-    const suitFreq = {};
-    for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
-    let flushSuit = null;
-    let suitedCount = 0;
-    for (const [s, c] of Object.entries(suitFreq)) {
-      if (c > suitedCount) { suitedCount = c; flushSuit = s; }
-    }
-    const flushPossible = suitedCount >= 3;
-
-    const uniqueVals = [...new Set(values)].sort((a, b) => a - b);
-    let straightPossible = false;
-    for (let i = 0; i < uniqueVals.length - 2; i++) {
-      if (uniqueVals[i + 2] - uniqueVals[i] <= 4) { straightPossible = true; break; }
-    }
-
-    let wet = 0;
-    if (flushPossible) wet += 0.35;
-    if (straightPossible) wet += 0.35;
-    if (paired) wet += 0.15;
-    if (suitedCount === 4) wet += 0.15;
-    wet = Math.min(1, wet);
-
-    return { wet, paired, flushPossible, flushSuit, suitedCount, straightPossible, highCard };
-  }
-
-  function sizingForTexture(texture, aggression) {
-    let base = 0.5;
-    if (texture.wet < 0.2) base = 0.33;
-    else if (texture.wet < 0.5) base = 0.5;
-    else if (texture.wet < 0.8) base = 0.66;
-    else base = 0.75;
-    base += aggression * 0.15;
-    return Math.min(1.0, Math.max(0.25, base));
-  }
-
-  return { analyze, sizingForTexture };
-
-})();
-
-const Plan = (() => {
-
-  function buildPlan(handStrength, texture, position, isAggressor, profile) {
-    const plan = { flop: 'check', turnIfBlank: 'check', turnIfWet: 'check', riverIfCompleted: 'check', isAggressor: !!isAggressor };
-    const strong = handStrength > 0.7;
-    const medium = handStrength > 0.45 && handStrength <= 0.7;
-    const weak = handStrength <= 0.45;
-
-    if (position === 'IP') {
-      if (strong) {
-        plan.flop = 'bet';
-        plan.turnIfBlank = 'barrel';
-        plan.turnIfWet = texture.wet > 0.6 ? 'check' : 'barrel';
-        plan.riverIfCompleted = 'value-bet';
-      } else if (medium) {
-        plan.flop = isAggressor ? 'bet' : 'check';
-      } else {
-        plan.flop = 'check';
-      }
-    } else {
-      if (strong) {
-        plan.flop = 'check';
-        plan.turnIfBlank = 'check-raise';
-        plan.turnIfWet = 'bet';
-        plan.riverIfCompleted = 'value-bet';
-      } else if (medium) {
-        plan.flop = isAggressor ? 'bet' : 'check';
-        plan.turnIfWet = 'check-fold';
-      } else if (weak && profile && profile.aggression > 0.6) {
-        plan.flop = 'donk-bet';
-        plan.turnIfBlank = 'barrel';
-        plan.turnIfWet = 'check-fold';
-      }
-    }
-    return plan;
-  }
-
-  function decideFromPlan(plan, street, texture) {
-    if (street === 'flop') return plan.flop;
-    if (street === 'turn') return texture.wet > 0.6 ? plan.turnIfWet : plan.turnIfBlank;
-    if (street === 'river') return plan.riverIfCompleted;
-    return 'check';
-  }
-
-  return { buildPlan, decideFromPlan };
-
-})();
-
-const Model = (() => {
-
-  const models = new Map();
-
-  function getModel(botId, oppId) {
-    if (!models.has(botId)) models.set(botId, new Map());
-    const botModels = models.get(botId);
-    if (!botModels.has(oppId)) {
-      botModels.set(oppId, {
-        hands: 0, vpip: 0, pfr: 0, calls: 0, raises: 0, folds: 0,
-        showdowns: 0, strongShows: 0, weakShows: 0, aggIndex: 0
-      });
-    }
-    return botModels.get(oppId);
-  }
-
-  function updateFromHand(botId, handData) {
-    if (!handData || !handData.players) return;
-    const bot = handData.players.find(p => p.id === botId);
-    if (!bot) return;
-
-    for (const opp of handData.players) {
-      if (opp.id === botId) continue;
-      if (opp.eliminated && !opp.inHand) continue;
-      const s = getModel(botId, opp.id);
-      s.hands++;
-
-      const actions = (handData.actionLog || []).filter(a => {
-        const p = handData.players.find(pl => pl.seatIndex === a.playerIndex);
-        return p && p.id === opp.id;
-      });
-
-      let entered = false;
-      let raised = false;
-      for (const a of actions) {
-        if (a.actionType === 'call') { s.calls++; entered = true; }
-        if (a.actionType === 'raise' || a.actionType === 'allin' || a.actionType === 'bet') { s.raises++; raised = true; entered = true; }
-        if (a.actionType === 'fold') s.folds++;
-      }
-      if (entered) s.vpip++;
-      if (raised) s.pfr++;
-
-      const totalActions = actions.length || 1;
-      s.aggIndex = (s.raises * 2 + s.calls) / totalActions;
-
-      if (handData.handOver && handData.showdownResults && handData.showdownResults.scores) {
-        const sc = handData.showdownResults.scores[opp.id];
-        if (sc && opp.revealed) {
-          s.showdowns++;
-          if (sc.category >= 3) s.strongShows++;
-          if (sc.category <= 1) s.weakShows++;
-        }
-      }
-    }
-  }
-
-  function getRead(botId, oppId) {
-    const botModels = models.get(botId);
-    if (!botModels || !botModels.has(oppId)) return null;
-    const s = botModels.get(oppId);
-    if (s.hands < 5) return null;
-    const vpipRate = s.vpip / s.hands;
-    const pfrRate = s.pfr / s.hands;
-    const foldRate = s.folds / Math.max(1, s.hands);
-    return {
-      vpipRate, pfrRate, foldRate, aggIndex: s.aggIndex, hands: s.hands,
-      looseness: Math.min(1, vpipRate / 0.6),
-      aggression: Math.min(1, pfrRate / 0.5),
-      foldTendency: Math.min(1, foldRate / 0.8)
-    };
-  }
-
-  function reset() { models.clear(); }
-
-  function dumpStats() {
-    const out = [];
-    for (const [botId, botMap] of models.entries()) {
-      const row = { botId, opponents: [] };
-      for (const [oppId, s] of botMap.entries()) {
-        row.opponents.push({
-          oppId,
-          hands: s.hands, vpip: s.vpip, pfr: s.pfr,
-          calls: s.calls, raises: s.raises, folds: s.folds,
-          showdowns: s.showdowns, strongShows: s.strongShows,
-          weakShows: s.weakShows, aggIndex: s.aggIndex
-        });
-      }
-      out.push(row);
-    }
-    return out;
-  }
-
-  return { updateFromHand, getRead, reset, dumpStats };
-
-})();
-  
-const Meta = (() => {
-
-  const botImages = new Map();
-
-  function getBotImage(botId, profile) {
-    if (!botImages.has(botId)) {
-      botImages.set(botId, {
-        image: 'normal',
-        handsInImage: 0,
-        imageDuration: profile && profile.aggression > 0.85 ? 20 : 999
-      });
-    }
-    return botImages.get(botId);
-  }
-
-  function tickImage(botId, profile) {
-    const img = getBotImage(botId, profile);
-    img.handsInImage++;
-    if (img.handsInImage >= img.imageDuration) {
-      img.handsInImage = 0;
-      if (img.image === 'normal') img.image = 'aggressive';
-      else if (img.image === 'aggressive') img.image = 'tight';
-      else img.image = 'normal';
-    }
-  }
-
-  function imageModifiers(image) {
-    if (image === 'tight') return { aggression: -0.15, looseness: -0.12, bluff: -0.10 };
-    if (image === 'aggressive') return { aggression: 0.15, looseness: 0.12, bluff: 0.12 };
-    return { aggression: 0, looseness: 0, bluff: 0 };
-  }
-
-  function reset() { botImages.clear(); }
-
-  function dumpState() {
-    const out = [];
-    for (const [botId, img] of botImages.entries()) {
-      out.push({ botId, image: img.image, handsInImage: img.handsInImage, imageDuration: img.imageDuration });
-    }
-    return out;
-  }
-
-  return { getBotImage, tickImage, imageModifiers, reset, dumpState };
-
-})();
-
-const Bots = (() => {
-
-  const R = Engine.RANK_VALUE;
-  const CLASS_PRO = 'PRO';
   const CLASS_VIP = 'VIP';
 
   const TYPES = {
-    PRO_GTO:    { key: 'PRO_GTO',    cls: CLASS_PRO, equityIters: 200, useICM: false, usePlan: true,  useMeta: false },
-    PRO_SOLVER: { key: 'PRO_SOLVER', cls: CLASS_PRO, equityIters: 300, useICM: false, usePlan: true,  useMeta: false },
-    PRO_ICM:    { key: 'PRO_ICM',    cls: CLASS_PRO, equityIters: 350, useICM: true,  usePlan: true,  useMeta: false },
-    PRO_LAG:    { key: 'PRO_LAG',    cls: CLASS_PRO, equityIters: 400, useICM: true,  usePlan: true,  useMeta: true  },
-    VIP_TAGLITE:{ key: 'VIP_TAGLITE',cls: CLASS_VIP, equityIters: 0,   useICM: false, usePlan: false, useMeta: false },
-    VIP_LOOSE:  { key: 'VIP_LOOSE',  cls: CLASS_VIP, equityIters: 0,   useICM: false, usePlan: false, useMeta: false },
-    VIP_ROCK:   { key: 'VIP_ROCK',   cls: CLASS_VIP, equityIters: 0,   useICM: false, usePlan: false, useMeta: false },
-    VIP_MANIAC: { key: 'VIP_MANIAC', cls: CLASS_VIP, equityIters: 0,   useICM: false, usePlan: false, useMeta: false }
+    VIP_TAGLITE: { key: 'VIP_TAGLITE', cls: CLASS_VIP },
+    VIP_LOOSE:   { key: 'VIP_LOOSE',   cls: CLASS_VIP },
+    VIP_ROCK:    { key: 'VIP_ROCK',    cls: CLASS_VIP },
+    VIP_MANIAC:  { key: 'VIP_MANIAC',  cls: CLASS_VIP }
   };
 
   const PROFILES = {
-    PRO_GTO:    { aggression: 0.68, looseness: 0.42, bluff: 0.22, callThreshold: 0.55, adaptivity: 0.55, proThinking: true,  tightBubble: 0.6 },
-    PRO_SOLVER: { aggression: 0.78, looseness: 0.55, bluff: 0.34, callThreshold: 0.45, adaptivity: 0.72, proThinking: true,  tightBubble: 0.7 },
-    PRO_ICM:    { aggression: 0.72, looseness: 0.45, bluff: 0.28, callThreshold: 0.52, adaptivity: 0.80, proThinking: true,  tightBubble: 1.0 },
-    PRO_LAG:    { aggression: 0.92, looseness: 0.72, bluff: 0.48, callThreshold: 0.32, adaptivity: 0.95, proThinking: true,  tightBubble: 0.5 },
-    VIP_TAGLITE:{ aggression: 0.55, looseness: 0.40, bluff: 0.12, callThreshold: 0.60, adaptivity: 0.10, proThinking: false, tightBubble: 0.3 },
-    VIP_LOOSE:  { aggression: 0.22, looseness: 0.72, bluff: 0.06, callThreshold: 0.35, adaptivity: 0.05, proThinking: false, tightBubble: 0.2 },
-    VIP_ROCK:   { aggression: 0.12, looseness: 0.14, bluff: 0.02, callThreshold: 0.85, adaptivity: 0.02, proThinking: false, tightBubble: 0.1 },
-    VIP_MANIAC: { aggression: 0.95, looseness: 0.92, bluff: 0.62, callThreshold: 0.22, adaptivity: 0.05, proThinking: false, tightBubble: 0.1 }
+    VIP_TAGLITE: { aggression: 0.55, looseness: 0.40, bluff: 0.12, callThreshold: 0.60 },
+    VIP_LOOSE:   { aggression: 0.22, looseness: 0.72, bluff: 0.06, callThreshold: 0.35 },
+    VIP_ROCK:    { aggression: 0.12, looseness: 0.14, bluff: 0.02, callThreshold: 0.85 },
+    VIP_MANIAC:  { aggression: 0.95, looseness: 0.92, bluff: 0.62, callThreshold: 0.22 }
   };
 
   const CHARTS = {
@@ -2943,16 +2549,7 @@ const Bots = (() => {
     OPEN_CO:   ['22+','A2s+','K2s+','Q5s+','J6s+','T6s+','95s+','84s+','73s+','63s+','52s+','42s+','32s','A4o+','K9o+','Q9o+','J9o+','T9o','98o','87o'],
     OPEN_BTN:  ['22+','A2s+','K2s+','Q2s+','J3s+','T5s+','94s+','83s+','72s+','62s+','52s+','42s+','32s','A2o+','K5o+','Q7o+','J8o+','T8o+','98o','87o','76o','65o'],
     OPEN_SB:   ['22+','A2s+','K2s+','Q2s+','J2s+','T4s+','93s+','82s+','72s+','62s+','52s+','42s+','32s','A2o+','K4o+','Q6o+','J7o+','T8o+','98o','87o','76o','65o','54o'],
-    THREE_BET_VS_UTG: ['QQ+','AKs','AKo','AQs','JJ','TT'],
-    THREE_BET_VS_MP:  ['TT+','AKs','AKo','AQs','AQo','AJs','KQs','99'],
-    THREE_BET_VS_CO:  ['99+','AQs+','AKo','AQo','AJs+','ATs','KQs','KJs','QJs','88'],
-    THREE_BET_VS_BTN: ['77+','ATs+','AJo+','KTs+','KQo','QTs+','JTs','T9s','98s','A5s','A4s','66'],
-    THREE_BET_VS_SB:  ['66+','A9s+','ATo+','KTs+','KJo+','QTs+','QJo','JTs','T9s','98s','A5s+'],
-    CALL_RAISE: ['22-99','A2s+','K9s+','Q9s+','J9s+','T8s+','98s','87s','76s','65s','54s','ATo+','KJo+','QJo','JTo','A9o','KTo','QTo'],
-    CALL_3BET:  ['JJ','TT','99','88','AQs','AJs','KQs','AQo','ATs'],
-    SHOVE_10_15BB: ['22+','A2s+','K5s+','Q7s+','J8s+','T8s+','98s','87s','76s','A7o+','K9o+','Q9o+','J9o+','T9o'],
-    SHOVE_5_10BB:  ['22+','A2s+','K2s+','Q4s+','J6s+','T7s+','96s+','85s+','74s+','64s+','54s','A2o+','K7o+','Q8o+','J9o+','T9o','98o'],
-    CALL_SHOVE: ['77+','AQs+','AKo','TT','JJ','QQ','KK','AA']
+    CALL_RAISE: ['22-99','A2s+','K9s+','Q9s+','J9s+','T8s+','98s','87s','76s','65s','54s','ATo+','KJo+','QJo','JTo','A9o','KTo','QTo']
   };
 
   const chartCache = {};
@@ -2961,7 +2558,8 @@ const Bots = (() => {
     const r1 = c1.rank, r2 = c2.rank;
     const v1 = R[r1], v2 = R[r2];
     if (v1 === v2) return r1 + r2;
-    const [hi, lo] = v1 > v2 ? [r1, r2] : [r2, r1];
+    const hi = v1 > v2 ? r1 : r2;
+    const lo = v1 > v2 ? r2 : r1;
     const suited = c1.suit === c2.suit ? 's' : 'o';
     return hi + lo + suited;
   }
@@ -3017,33 +2615,14 @@ const Bots = (() => {
   }
 
   function assignBotTypes() {
-    const result = [];
-
-    result.push('PRO_LAG');
-    result.push('PRO_LAG');
-
-    const proPool = ['PRO_GTO', 'PRO_SOLVER', 'PRO_ICM'];
-    for (let i = 0; i < 3; i++) {
-      const idx = Engine.cryptoRandomInt(proPool.length);
-      result.push(proPool[idx]);
-    }
-
-    const vipPool = ['VIP_TAGLITE', 'VIP_LOOSE', 'VIP_ROCK', 'VIP_MANIAC'];
-    const firstIdx = Engine.cryptoRandomInt(vipPool.length);
-    const firstVip = vipPool[firstIdx];
-    const remaining = vipPool.filter(v => v !== firstVip);
-    const secondVip = remaining[Engine.cryptoRandomInt(remaining.length)];
-    result.push(firstVip);
-    result.push(secondVip);
-
-    return result;
+    return ['VIP_TAGLITE', 'VIP_TAGLITE', 'VIP_TAGLITE', 'VIP_MANIAC', 'VIP_MANIAC', 'VIP_ROCK', 'VIP_LOOSE'];
   }
 
   function assignBotsToSeats(botTypes) {
     const arr = botTypes.slice();
     for (let i = arr.length - 1; i > 0; i--) {
       const j = Engine.cryptoRandomInt(i + 1);
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+      const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
     }
     return arr;
   }
@@ -3082,265 +2661,217 @@ const Bots = (() => {
     }
   }
 
-  function threeBetChartFor(raiserPos) {
-    switch (raiserPos) {
-      case 'UTG': case 'UTG1': return 'THREE_BET_VS_UTG';
-      case 'LJ':  case 'HJ':   return 'THREE_BET_VS_MP';
-      case 'CO':               return 'THREE_BET_VS_CO';
-      case 'BTN':              return 'THREE_BET_VS_BTN';
-      case 'SB':               return 'THREE_BET_VS_SB';
-      case 'BB':               return 'THREE_BET_VS_SB';
-      default:                 return 'THREE_BET_VS_CO';
-    }
+  function makeDiagnostics(base) {
+    return {
+      source: 'vip',
+      strength: base.strength,
+      preflopStrength: base.preflopStrength,
+      postflopStrength: base.postflopStrength,
+      handName: base.handName,
+      chart: base.chart,
+      threshold: base.threshold,
+      reason: base.reason
+    };
   }
 
-  function decide(ctx) {
+  function decidePreflop(ctx) {
     const profile = PROFILES[ctx.botType];
-    if (!profile) return { action: 'fold', amount: 0 };
-    const typeMeta = TYPES[ctx.botType] || {};
+    if (!profile) return { action: 'fold', amount: 0, diagnostics: makeDiagnostics({ reason: 'no profile' }) };
 
-    let effProfile = profile;
-    if (typeMeta.useMeta) {
-      const img = Meta.getBotImage(ctx.botId, profile);
-      const mods = Meta.imageModifiers(img.image);
-      effProfile = {
-        aggression: Math.max(0, Math.min(1, profile.aggression + mods.aggression)),
-        looseness: Math.max(0, Math.min(1, profile.looseness + mods.looseness)),
-        bluff: Math.max(0, Math.min(1, profile.bluff + mods.bluff)),
-        callThreshold: profile.callThreshold,
-        adaptivity: profile.adaptivity,
-        proThinking: profile.proThinking,
-        tightBubble: profile.tightBubble
-      };
-    }
+    const card1 = ctx.card1, card2 = ctx.card2;
+    const position = ctx.position;
+    const myStack = ctx.myStack;
+    const bb = ctx.bb;
+    const toCall = ctx.toCall;
+    const pot = ctx.pot;
+    const numActive = ctx.numActive;
 
-    return ctx.street === 'preflop'
-      ? decidePreflop(ctx, effProfile, typeMeta)
-      : decidePostflop(ctx, effProfile, typeMeta);
-  }
-
-  function proMathAdjust(ctx, profile, typeMeta) {
-    if (!typeMeta.equityIters || typeMeta.equityIters <= 0) return null;
-    const board = ctx.board || [];
-    if (board.length < 3) return null;
-
-    const toCall = ctx.toCall || 0;
-    if (toCall <= 0) return null;
-
-    const myHand = [ctx.card1, ctx.card2];
-    const oppRange = Math2.buildOpponentRange(ctx.oppLastAction || 'check', ctx.street, ctx.oppPosition, ctx.oppStackBB);
-
-    const eq = Math2.equityVsRange(myHand, board, oppRange, typeMeta.equityIters);
-    const po = Math2.potOdds(toCall, ctx.pot);
-
-    let adjustedPo = po;
-    if (typeMeta.useICM && ctx.icmBubbleFactor && ctx.icmBubbleFactor > 1) {
-      adjustedPo = po * ctx.icmBubbleFactor;
-    }
-
-    if (eq < adjustedPo - 0.03 && eq < profile.callThreshold * 0.9) {
-      return { action: 'fold', amount: 0 };
-    }
-    if (eq > adjustedPo + 0.20 && eq > 0.65 && profile.aggression > 0.5) {
-      const sizeFactor = Texture.sizingForTexture(ctx.texture || { wet: 0.3 }, profile.aggression);
-      const target = Math.round((ctx.pot + toCall) * (1 + sizeFactor));
-      return { action: 'raise', amount: Math.min(ctx.myStack, target) };
-    }
-    if (eq >= adjustedPo - 0.05) {
-      return { action: 'call', amount: toCall };
-    }
-    return null;
-  }
-
-  function decidePreflop(ctx, profile, typeMeta) {
-    const { card1, card2, position, myStack, bb, toCall, pot, numActive, playersLeft } = ctx;
-    const stackBB = myStack / bb;
     const strength = preflopStrength(card1, card2);
-
-    const bubbleTighten = (playersLeft <= 4) ? profile.tightBubble : 0;
-    const effStrength = strength * (1 - 0.2 * bubbleTighten);
-
-    let adaptBonus = 0;
-    if (profile.proThinking && ctx.oppRead && ctx.oppRead.hands >= 8) {
-      adaptBonus = profile.adaptivity * ctx.oppRead.foldTendency * 0.15;
-    }
-
-    let icmAdjust = 0;
-    if (typeMeta.useICM && ctx.icmBubbleFactor && ctx.icmBubbleFactor > 1.2 && playersLeft <= 4) {
-      icmAdjust = (ctx.icmBubbleFactor - 1) * 0.15;
-    }
-    const effectiveStrength = effStrength * (1 - icmAdjust);
-
-    if (stackBB <= 15 && !ctx.facingRaise) {
-      if (stackBB <= 10) {
-        if (handInChart(card1, card2, 'SHOVE_5_10BB')) return { action: 'allin', amount: myStack };
-      } else {
-        if (handInChart(card1, card2, 'SHOVE_10_15BB')) return { action: 'allin', amount: myStack };
-      }
-      if (toCall === 0) return { action: 'check', amount: 0 };
-      return { action: 'fold', amount: 0 };
-    }
-
-    if (ctx.facingRaise && ctx.facingAllin) {
-      let needStrong = 0.55;
-      if (typeMeta.useICM && ctx.icmBubbleFactor && ctx.icmBubbleFactor > 1.3) {
-        needStrong = 0.72;
-      }
-      if (handInChart(card1, card2, 'CALL_SHOVE') ||
-          (profile.looseness > 0.7 && effectiveStrength > needStrong)) return { action: 'call', amount: toCall };
-      return { action: 'fold', amount: 0 };
-    }
-
-    if (ctx.facing3Bet) {
-      if (handInChart(card1, card2, 'CALL_3BET') ||
-          (profile.looseness > 0.6 && effectiveStrength > 0.6)) {
-        if (profile.aggression > 0.7 && effectiveStrength > 0.8 && Math.random() < 0.5) {
-          const size = Math.min(myStack, Math.round((pot + toCall) * 2.2));
-          return { action: 'raise', amount: size };
-        }
-        return { action: 'call', amount: toCall };
-      }
-      return { action: 'fold', amount: 0 };
-    }
-
-    if (ctx.facingRaise) {
-      const chart3bet = threeBetChartFor(ctx.raiserPosition);
-      if (handInChart(card1, card2, chart3bet)) {
-        const size = Math.min(myStack, Math.round((pot + toCall) * 3));
-        return { action: 'raise', amount: size };
-      }
-      if (handInChart(card1, card2, 'CALL_RAISE')) return { action: 'call', amount: toCall };
-      if (profile.looseness > 0.6 && effectiveStrength > 0.35) return { action: 'call', amount: toCall };
-      if (profile.bluff > 0.4 && effectiveStrength > 0.3 && Math.random() < profile.bluff * 0.3) {
-        const size = Math.min(myStack, Math.round((pot + toCall) * 3));
-        return { action: 'raise', amount: size };
-      }
-      return { action: 'fold', amount: 0 };
-    }
-
-    const openChart = openChartFor(position);
-    if (handInChart(card1, card2, openChart)) {
-      const openSize = Math.round(bb * (numActive > 5 ? 3 : 2.5));
-      return { action: 'raise', amount: Math.min(myStack, openSize) };
-    }
-
-    if (typeMeta.useICM && profile.proThinking && ctx.oppRead && ctx.oppRead.hands >= 8) {
-      const pressure = profile.adaptivity * ctx.oppRead.foldTendency;
-      if (pressure > 0.4 && effectiveStrength > 0.2 && toCall === 0 && numActive <= 3) {
-        const openSize = Math.round(bb * 2.5);
-        return { action: 'raise', amount: Math.min(myStack, openSize) };
-      }
-    }
-
-    if (profile.looseness > 0.7 && effectiveStrength > 0.25 && Math.random() < profile.bluff * 0.5 + adaptBonus) {
-      const openSize = Math.round(bb * 2.5);
-      return { action: 'raise', amount: Math.min(myStack, openSize) };
-    }
-    if (profile.proThinking && adaptBonus > 0.05 && toCall === 0 && numActive <= 3) {
-      const openSize = Math.round(bb * 2.5);
-      return { action: 'raise', amount: Math.min(myStack, openSize) };
-    }
-    if (toCall === 0) return { action: 'check', amount: 0 };
-    return { action: 'fold', amount: 0 };
-  }
-  
-  function decidePostflop(ctx, profile, typeMeta) {
-    const { card1, card2, board, toCall, pot, myStack, bb, street } = ctx;
-
-    if (profile.proThinking) {
-      const mathDecision = proMathAdjust(ctx, profile, typeMeta);
-      if (mathDecision) {
-        const trust = Math.min(1, 0.5 + profile.adaptivity * 0.5);
-        if (Math.random() < trust) return mathDecision;
-      }
-    }
-
-    const allCards = [card1, card2, ...board];
-    const handScore = Engine.evaluateHand(allCards);
-    const strength = postflopStrength(handScore);
-    const streetBonus = street === 'river' ? 0.05 : 0;
-    const texture = ctx.texture || Texture.analyze(board);
-
-    let planAction = null;
-    if (typeMeta.usePlan && profile.proThinking) {
-      const plan = Plan.buildPlan(
-        strength + streetBonus,
-        texture,
-        ctx.position === 'BTN' || ctx.position === 'CO' ? 'IP' : 'OOP',
-        ctx.isAggressor || false,
-        profile
-      );
-      planAction = Plan.decideFromPlan(plan, street, texture);
-    }
-
-    let adaptBonus = 0;
-    if (profile.proThinking && ctx.oppRead && ctx.oppRead.hands >= 8) {
-      adaptBonus = profile.adaptivity * ctx.oppRead.foldTendency * 0.2;
-    }
+    const diagBase = {
+      strength: strength,
+      preflopStrength: strength,
+      postflopStrength: null,
+      handName: '—',
+      chart: null,
+      threshold: null,
+      reason: ''
+    };
 
     if (toCall === 0) {
-      if (profile.proThinking && profile.aggression > 0.6 && strength > 0.85 && street === 'flop') {
-        if (Math.random() < 0.35 * profile.adaptivity) {
-          return { action: 'check', amount: 0 };
-        }
+      const chart = openChartFor(position);
+      const inChart = handInChart(card1, card2, chart);
+      if (inChart) {
+        const openSize = Math.round(bb * (numActive > 5 ? 3 : 2.5));
+        return { action: 'raise', amount: Math.min(myStack, openSize), diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'open', reason: 'in open chart, raise' })) };
       }
+      if (profile.looseness > 0.7 && strength > 0.25 && Math.random() < profile.bluff * 0.5) {
+        const openSize = Math.round(bb * 2.5);
+        return { action: 'raise', amount: Math.min(myStack, openSize), diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'bluff', reason: 'loose bluff raise' })) };
+      }
+      return { action: 'check', amount: 0, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'check', reason: 'not in open chart, check' })) };
+    }
+
+    const chart = 'CALL_RAISE';
+    const inChart = handInChart(card1, card2, chart);
+    if (inChart) return { action: 'call', amount: toCall, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'call chart', reason: 'in call chart, call' })) };
+    if (profile.looseness > 0.6 && strength > 0.35) return { action: 'call', amount: toCall, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'loose', reason: 'loose call' })) };
+    if (profile.aggression > 0.7 && strength > 0.6 && Math.random() < profile.aggression * 0.4) {
+      const size = Math.min(myStack, Math.round((pot + toCall) * 3));
+      return { action: 'raise', amount: size, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'aggro', reason: 'aggressive re-raise' })) };
+    }
+    return { action: 'fold', amount: 0, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { chart, threshold: 'fold', reason: 'not in call chart, fold' })) };
+  }
+
+  function decidePostflop(ctx) {
+    const profile = PROFILES[ctx.botType];
+    if (!profile) return { action: 'fold', amount: 0, diagnostics: makeDiagnostics({ reason: 'no profile' }) };
+
+    const card1 = ctx.card1, card2 = ctx.card2;
+    const board = ctx.board || [];
+    const toCall = ctx.toCall || 0;
+    const pot = ctx.pot || 0;
+    const myStack = ctx.myStack || 0;
+    const bb = ctx.bb || 1;
+    const street = ctx.street;
+
+    const allCards = [card1, card2, ...board];
+    const handScore = allCards.length >= 5 ? Engine.evaluateHand(allCards) : null;
+    const strength = handScore ? postflopStrength(handScore) : preflopStrength(card1, card2);
+    const streetBonus = street === 'river' ? 0.05 : 0;
+
+    const diagBase = {
+      strength: strength,
+      preflopStrength: null,
+      postflopStrength: strength,
+      handName: handScore ? handScore.name : '—',
+      chart: null,
+      threshold: null,
+      reason: ''
+    };
+
+    if (toCall === 0) {
       if (strength + streetBonus > 0.65) {
-        const sizingFactor = texture && Texture.sizingForTexture ? Texture.sizingForTexture(texture, profile.aggression) : 0.5;
-        const betSize = Math.round(pot * sizingFactor);
-        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)) };
+        const betSize = Math.round(pot * 0.5);
+        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)), diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'strong', reason: 'strong hand, bet' })) };
       }
       if (strength > 0.4 && Math.random() < profile.aggression * 0.5) {
         const betSize = Math.round(pot * 0.5);
-        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)) };
+        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)), diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'medium', reason: 'medium hand, aggressive bet' })) };
       }
-      if (Math.random() < profile.bluff * 0.25 + adaptBonus) {
+      if (Math.random() < profile.bluff * 0.25) {
         const betSize = Math.round(pot * 0.6);
-        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)) };
+        return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)), diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'bluff', reason: 'bluff bet' })) };
       }
-      if (planAction === 'bet' || planAction === 'barrel' || planAction === 'value-bet') {
-        if (profile.proThinking && strength > 0.3) {
-          const betSize = Math.round(pot * 0.5);
-          return { action: 'bet', amount: Math.min(myStack, Math.max(bb, betSize)) };
-        }
-      }
-      return { action: 'check', amount: 0 };
+      return { action: 'check', amount: 0, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'weak', reason: 'weak, check' })) };
     }
 
     const potOdds = toCall / (pot + toCall);
 
-    let adjustedThreshold = profile.callThreshold;
-    if (typeMeta.useICM && ctx.icmBubbleFactor && ctx.icmBubbleFactor > 1) {
-      adjustedThreshold = Math.min(0.95, profile.callThreshold + (ctx.icmBubbleFactor - 1) * 0.2);
-    }
-
     if (strength + streetBonus > 0.75) {
       if (profile.aggression > 0.5 && Math.random() < profile.aggression) {
-        const sizingFactor = texture && Texture.sizingForTexture ? Texture.sizingForTexture(texture, profile.aggression) : 0.7;
-        const raiseSize = Math.min(myStack, Math.round((pot + toCall) * (1 + sizingFactor)));
-        return { action: 'raise', amount: raiseSize };
+        const raiseSize = Math.min(myStack, Math.round((pot + toCall) * 2.2));
+        return { action: 'raise', amount: raiseSize, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'very strong', reason: 'very strong, raise' })) };
       }
-      return { action: 'call', amount: toCall };
+      return { action: 'call', amount: toCall, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'very strong', reason: 'very strong, call' })) };
     }
 
-    if (strength > adjustedThreshold && strength > potOdds * 1.5) return { action: 'call', amount: toCall };
+    if (strength > profile.callThreshold && strength > potOdds * 1.5) {
+      return { action: 'call', amount: toCall, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'call', reason: 'above threshold, call' })) };
+    }
 
-    let bluffFreq = profile.bluff * 0.15;
-    if (strength > 0.3 && Math.random() < bluffFreq) {
+    if (strength > 0.3 && Math.random() < profile.bluff * 0.15) {
       const raiseSize = Math.min(myStack, Math.round((pot + toCall) * 2.5));
-      return { action: 'raise', amount: raiseSize };
+      return { action: 'raise', amount: raiseSize, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'bluff', reason: 'bluff raise' })) };
     }
-    return { action: 'fold', amount: 0 };
+
+    return { action: 'fold', amount: 0, diagnostics: makeDiagnostics(Object.assign({}, diagBase, { threshold: 'fold', reason: 'below threshold, fold' })) };
   }
 
-  return {
-    CLASS_PRO, CLASS_VIP, TYPES, PROFILES,
-    assignBotTypes, assignBotsToSeats,
-    decide, preflopStrength, postflopStrength,
-    handInChart
+  function decide(ctx) {
+    if (!ctx || !ctx.botType) return { action: 'fold', amount: 0, diagnostics: makeDiagnostics({ reason: 'invalid ctx' }) };
+    return ctx.street === 'preflop' ? decidePreflop(ctx) : decidePostflop(ctx);
+  }
+
+  function getProfile(botType) { return PROFILES[botType] || null; }
+  function getTypeMeta(botType) { return TYPES[botType] || null; }
+
+  function updateModel() {}
+  function updateMeta() {}
+  function getRead() { return null; }
+  function reset() {}
+  function dumpStats() { return []; }
+
+  const VipTexture = {
+    analyze: function(board) {
+      const result = { wet: 0, paired: false, flushPossible: false, straightPossible: false, highCard: 0, flushSuit: null, suitedCount: 0 };
+      if (!board || board.length === 0) return result;
+      const values = board.map(c => R[c.rank]);
+      const suits = board.map(c => c.suit);
+      const sorted = values.slice().sort((a, b) => b - a);
+      result.highCard = sorted[0] || 0;
+      const freq = {};
+      for (const v of values) freq[v] = (freq[v] || 0) + 1;
+      result.paired = Object.values(freq).some(v => v >= 2);
+      const suitFreq = {};
+      for (const s of suits) suitFreq[s] = (suitFreq[s] || 0) + 1;
+      let suitedCount = 0; let flushSuit = null;
+      for (const [s, c] of Object.entries(suitFreq)) {
+        if (c > suitedCount) { suitedCount = c; flushSuit = s; }
+      }
+      result.suitedCount = suitedCount;
+      result.flushSuit = flushSuit;
+      result.flushPossible = suitedCount >= 3;
+      const uniqueVals = [...new Set(values)].sort((a, b) => a - b);
+      for (let i = 0; i < uniqueVals.length - 2; i++) {
+        if (uniqueVals[i + 2] - uniqueVals[i] <= 4) { result.straightPossible = true; break; }
+      }
+      let wet = 0;
+      if (result.flushPossible) wet += 0.35;
+      if (result.straightPossible) wet += 0.35;
+      if (result.paired) wet += 0.15;
+      if (suitedCount === 4) wet += 0.15;
+      result.wet = Math.min(1, wet);
+      return result;
+    }
   };
+
+  const Bots = {
+    CLASS_PRO: null,
+    CLASS_VIP,
+    TYPES,
+    PROFILES,
+    Texture: VipTexture,
+    decidePreflop,
+    decidePostflop,
+    decide,
+    assignBotTypes,
+    assignBotsToSeats,
+    preflopStrength,
+    postflopStrength,
+    handInChart,
+    updateModel,
+    updateMeta,
+    getRead,
+    reset,
+    dumpStats,
+    getProfile,
+    getTypeMeta
+  };
+
+  Bots.__level = 'default';
+  Bots.__version = '1.0-vip';
+  Bots.__source = 'index.html';
+
+  return Bots;
 
 })();
 
+window.Bots = VipBots;
+</script>
+
+<script src="bots.js"></script>
+
+<script>
 const UI = (() => {
 
   const STORAGE_KEY = 'pranaPokerSettings.v1';
@@ -3799,8 +3330,6 @@ const UI = (() => {
     const deltaEl = seat.querySelector('[data-role="delta"]');
     if (!deltaEl) return;
 
-    // Hero and top-center seat: keep delta inside stack-wrap (left of stack).
-    // Side seats (1,2,3,5,6,7): move delta inside pos-row so it sits next to position.
     const isTopCenter = seat.classList.contains('top');
     const isHero = seat.classList.contains('hero');
     const desiredParent = (isHero || isTopCenter) ? seat.querySelector('.stack-wrap') : seat.querySelector('.pos-row');
@@ -4267,7 +3796,7 @@ const UI = (() => {
       let pointerDown = false;
       let startX = 0, startY = 0;
       let startCenterX = 0;
-      let axis = null; // null | 'h' | 'v'
+      let axis = null;
       const AXIS_START_PX = 4;
       const AXIS_BIAS = 1.3;
 
@@ -4724,7 +4253,10 @@ const UI = (() => {
   };
 
 })();
-  const Log = (() => {
+</script>
+
+<script>
+const Log = (() => {
 
   const RANK_PS = { '2':'2','3':'3','4':'4','5':'5','6':'6','7':'7','8':'8','9':'9','T':'T','J':'J','Q':'Q','K':'K','A':'A' };
   const SUIT_PS = { s:'s', h:'h', d:'d', c:'c' };
@@ -4820,12 +4352,36 @@ const UI = (() => {
       ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ' ET';
   }
 
+  function botsLevelInfo() {
+    const b = (typeof window !== 'undefined') ? window.Bots : null;
+    if (!b) return { level: 'missing', version: '—', source: '—', loadedJs: false, missingFns: ['Bots object absent'] };
+    const level = b.__level || 'unknown';
+    const version = b.__version || '—';
+    const source = b.__source || '—';
+    const loadedJs = (typeof window.__botsJsLoaded !== 'undefined') ? !!window.__botsJsLoaded : false;
+    const required = [
+      'decidePreflop', 'decidePostflop', 'assignBotTypes', 'assignBotsToSeats',
+      'updateModel', 'updateMeta', 'getRead', 'reset', 'dumpStats',
+      'getProfile', 'getTypeMeta', 'preflopStrength', 'postflopStrength', 'Texture'
+    ];
+    const missing = [];
+    for (const fn of required) {
+      if (typeof b[fn] !== 'function' && typeof b[fn] !== 'object') missing.push(fn);
+    }
+    return { level, version, source, loadedJs, missingFns: missing };
+  }
+
   function buildReport(snap, meta) {
     const L = [];
     const now = new Date();
+    const bl = botsLevelInfo();
     L.push('=== THE POKER WAY — HAND LOG ===');
     L.push('Captured: ' + now.toLocaleString('en-US'));
-    L.push('Format version: v1');
+    L.push('Format version: v3');
+    L.push('Bots level: ' + bl.level + ' | version: ' + bl.version + ' | source: ' + bl.source);
+    L.push('Bots file loaded: ' + (bl.loadedJs ? 'yes' : 'no'));
+    L.push('Diagnostics source: bot');
+    if (bl.missingFns.length > 0) L.push('Bots missing interface: ' + bl.missingFns.join(', '));
     L.push('Hand number: #' + snap.handNumber);
     L.push('Blind level (index): ' + snap.levelIndex);
     L.push('Blinds: SB ' + snap.blinds.sb + ' / BB ' + snap.blinds.bb + (snap.blinds.ante > 0 ? ' / ante ' + snap.blinds.ante : ''));
@@ -4843,6 +4399,7 @@ const UI = (() => {
         ' | ' + p.name +
         ' | ' + (p.isHero ? 'HERO' : 'bot') +
         ' | type ' + type + ' | class ' + cls +
+        ' | botLevel ' + bl.level + ' | botVersion ' + bl.version +
         ' | position ' + (p.position || '—') +
         ' | stack ' + p.stack +
         (p.eliminated ? ' | ELIMINATED' : '') +
@@ -4861,12 +4418,6 @@ const UI = (() => {
       if (snap.board.length >= 4) parts.push('turn: ' + cardStr(snap.board[3]));
       if (snap.board.length >= 5) parts.push('river: ' + cardStr(snap.board[4]));
       L.push(parts.join(' | '));
-      const tex = Texture.analyze(snap.board);
-      L.push('Texture: wetness ' + fmtNum(tex.wet) +
-        ' | paired ' + (tex.paired ? 'yes' : 'no') +
-        ' | flush possible ' + (tex.flushPossible ? 'yes (' + (tex.flushSuit || '?') + ', ' + tex.suitedCount + ')' : 'no') +
-        ' | straight possible ' + (tex.straightPossible ? 'yes' : 'no') +
-        ' | high card ' + tex.highCard);
     }
     L.push('');
 
@@ -4893,65 +4444,63 @@ const UI = (() => {
         if (a.botCtx) {
           const c = a.botCtx;
           L.push('       [BOT DECISION — input]');
-          L.push('       type: ' + c.botType + ' / class ' + c.botClass);
+          L.push('       type: ' + c.botType + ' / class ' + c.botClass +
+            ' | botLevel ' + (c.botLevel || bl.level) +
+            ' | botVersion ' + (c.botVersion || bl.version));
           L.push('       position: ' + c.position + ' | stack BB: ' + fmtNum(c.stackBB) + ' | active: ' + c.numActive);
           L.push('       street: ' + streetRu(c.street) + ' | pot: ' + fmtNum(c.pot) + ' | to call: ' + fmtNum(c.toCall) +
             ' | min raise: ' + fmtNum(c.minRaise) + ' | current bet: ' + fmtNum(c.currentBet));
           L.push('       stack: ' + fmtNum(c.myStack) + ' | invested this street: ' + fmtNum(c.committedThisStreet) +
             ' | total: ' + fmtNum(c.committedTotal));
           L.push('       cards: ' + cardsStr(c.holeCards) + ' | board: ' + cardsStr(c.board));
-          L.push('       hand: ' + (c.handName || '—') + ' | strength: ' + fmtNum(c.handStrength));
-          if (c.texture) {
-            L.push('       texture: wetness ' + fmtNum(c.texture.wet) +
-              ' | paired ' + (c.texture.paired ? 'yes' : 'no') +
-              ' | flush ' + (c.texture.flushPossible ? 'yes' : 'no') +
-              ' | straight ' + (c.texture.straightPossible ? 'yes' : 'no') +
-              ' | high card ' + c.texture.highCard);
+          if (c.diagnostics) {
+            const d = c.diagnostics;
+            L.push('       [DIAGNOSTICS from bot] source: ' + (d.source || '—'));
+            if (d.strength !== undefined && d.strength !== null) L.push('       strength: ' + fmtNum(d.strength));
+            if (d.preflopStrength !== undefined && d.preflopStrength !== null) L.push('       preflop strength: ' + fmtNum(d.preflopStrength));
+            if (d.postflopStrength !== undefined && d.postflopStrength !== null) L.push('       postflop strength: ' + fmtNum(d.postflopStrength));
+            if (d.handName) L.push('       hand: ' + d.handName);
+            if (d.chart) L.push('       chart: ' + d.chart);
+            if (d.threshold !== undefined && d.threshold !== null) L.push('       threshold: ' + d.threshold);
+            if (d.eq !== undefined && d.eq !== null) L.push('       equity: ' + fmtEq(d.eq));
+            if (d.potOdds !== undefined && d.potOdds !== null) L.push('       pot odds: ' + fmtEq(d.potOdds));
+            if (d.adjPotOdds !== undefined && d.adjPotOdds !== null) L.push('       pot odds with ICM: ' + fmtEq(d.adjPotOdds));
+            if (d.icm) {
+              L.push('       ICM: bubble factor ' + fmtNum(d.icm.bubbleFactor) +
+                ' | players: ' + d.icm.playersLeft +
+                ' | prize spots: ' + d.icm.prizeSpots);
+            }
+            if (d.texture) {
+              L.push('       texture: wetness ' + fmtNum(d.texture.wet) +
+                ' | paired ' + (d.texture.paired ? 'yes' : 'no') +
+                ' | flush ' + (d.texture.flushPossible ? 'yes' : 'no') +
+                ' | straight ' + (d.texture.straightPossible ? 'yes' : 'no') +
+                ' | high card ' + d.texture.highCard);
+            }
+            if (d.oppRead) {
+              L.push('       read: hands ' + d.oppRead.hands +
+                ' | VPIP ' + fmtEq(d.oppRead.vpipRate) +
+                ' | PFR ' + fmtEq(d.oppRead.pfrRate) +
+                ' | fold ' + fmtEq(d.oppRead.foldRate) +
+                ' | aggression ' + fmtNum(d.oppRead.aggIndex));
+            }
+            if (d.plan) {
+              L.push('       plan: flop ' + d.plan.flop +
+                ' | turn-dry ' + d.plan.turnIfBlank +
+                ' | turn-wet ' + d.plan.turnIfWet +
+                ' | river ' + d.plan.riverIfCompleted);
+              if (d.planDecision) L.push('       plan decision: ' + d.planDecision);
+            }
+            if (d.profile) {
+              L.push('       profile: aggression ' + fmtNum(d.profile.aggression) +
+                ' | looseness ' + fmtNum(d.profile.looseness) +
+                ' | bluff ' + fmtNum(d.profile.bluff) +
+                ' | callThreshold ' + fmtNum(d.profile.callThreshold));
+            }
+            if (d.reason) L.push('       RESULT: ' + d.reason);
+          } else {
+            L.push('       [DIAGNOSTICS MISSING — bot did not provide diagnostics]');
           }
-          L.push('       street aggressor: ' + (c.isAggressor ? 'yes' : 'no'));
-          if (c.oppName) {
-            L.push('       opponent: ' + c.oppName + ' [' + c.oppPosition + ']' +
-              ' | stack BB: ' + fmtNum(c.oppStackBB) + ' | last: ' + actionRu(c.oppLastAction || '—'));
-          }
-          if (c.oppRead) {
-            L.push('       read: hands ' + c.oppRead.hands +
-              ' | VPIP ' + fmtEq(c.oppRead.vpipRate) +
-              ' | PFR ' + fmtEq(c.oppRead.pfrRate) +
-              ' | fold ' + fmtEq(c.oppRead.foldRate) +
-              ' | aggression ' + fmtNum(c.oppRead.aggIndex));
-          }
-          if (c.icm) {
-            L.push('       ICM: bubble factor ' + fmtNum(c.icm.bubbleFactor) +
-              ' | players: ' + c.icm.playersLeft +
-              ' | prize spots: ' + c.icm.prizeSpots);
-          }
-          if (c.eq !== null && c.eq !== undefined) L.push('       equity: ' + fmtEq(c.eq));
-          if (c.potOdds !== null && c.potOdds !== undefined) L.push('       pot odds: ' + fmtEq(c.potOdds));
-          if (c.adjPotOdds !== null && c.adjPotOdds !== undefined) L.push('       pot odds with ICM: ' + fmtEq(c.adjPotOdds));
-          if (c.profile) {
-            L.push('       profile: aggression ' + fmtNum(c.profile.aggression) +
-              ' | looseness ' + fmtNum(c.profile.looseness) +
-              ' | bluff ' + fmtNum(c.profile.bluff) +
-              ' | callThreshold ' + fmtNum(c.profile.callThreshold) +
-              ' | adaptivity ' + fmtNum(c.profile.adaptivity) +
-              ' | tightBubble ' + fmtNum(c.profile.tightBubble));
-          }
-          if (c.meta) {
-            L.push('       image: ' + c.meta.image +
-              ' | mods aggression ' + fmtNum(c.meta.mods.aggression) +
-              ' | looseness ' + fmtNum(c.meta.mods.looseness) +
-              ' | bluff ' + fmtNum(c.meta.mods.bluff));
-          }
-          if (c.adaptBonus !== undefined) L.push('       adapt bonus: ' + fmtNum(c.adaptBonus));
-          if (c.icmAdjust !== undefined) L.push('       ICM adjust: ' + fmtNum(c.icmAdjust));
-          if (c.plan) {
-            L.push('       plan: flop ' + c.plan.flop +
-              ' | turn-dry ' + c.plan.turnIfBlank +
-              ' | turn-wet ' + c.plan.turnIfWet +
-              ' | river ' + c.plan.riverIfCompleted);
-            if (c.planDecision) L.push('       plan decision: ' + c.planDecision);
-          }
-          if (c.reason) L.push('       RESULT: ' + c.reason);
         }
 
         if (a.heroCtx) {
@@ -5074,10 +4623,15 @@ const UI = (() => {
     const now = new Date();
     const startTs = app.sessionStartTs;
     const uptime = Date.now() - startTs;
+    const bl = botsLevelInfo();
 
     L.push('=== THE POKER WAY — FULL APP LOG (SESSION) ===');
     L.push('Captured: ' + now.toLocaleString('en-US'));
-    L.push('Format version: v1');
+    L.push('Format version: v3');
+    L.push('Bots level: ' + bl.level + ' | version: ' + bl.version + ' | source: ' + bl.source);
+    L.push('Bots file loaded (bots.js): ' + (bl.loadedJs ? 'yes' : 'no'));
+    L.push('Bots replaced by bots.js: ' + (bl.source === 'bots.js' ? 'yes' : 'no'));
+    if (bl.missingFns.length > 0) L.push('Bots missing interface: ' + bl.missingFns.join(', '));
     L.push('');
 
     L.push('--- ENVIRONMENT ---');
@@ -5102,6 +4656,7 @@ const UI = (() => {
 
     L.push('--- SESSION STATE ---');
     const s = app.session;
+    L.push('Bots level: ' + bl.level + ' (version ' + bl.version + ')');
     L.push('active: ' + (s.active ? 'yes' : 'no'));
     L.push('isPaused: ' + (s.isPaused ? 'yes' : 'no'));
     L.push('waitingForHero: ' + (s.waitingForHero ? 'yes' : 'no'));
@@ -5148,6 +4703,7 @@ const UI = (() => {
       for (const p of st.players) {
         L.push('  seat ' + p.seatIndex + ' | ' + p.name +
           ' | ' + (p.isHero ? 'HERO' : 'bot ' + (p.botType || '—') + ' / ' + (p.botClass || '—')) +
+          ' | botLevel ' + bl.level + ' | botVersion ' + bl.version +
           ' | position ' + (p.position || '—') +
           ' | stack ' + p.stack +
           ' | cards ' + (p.holeCards && p.holeCards.length ? p.holeCards.map(c => c.rank + c.suit).join(' ') : '—') +
@@ -5269,33 +4825,15 @@ const UI = (() => {
     L.push('');
 
     L.push('--- MODULES ---');
-    L.push('Model:');
-    try {
-      const modelDump = Model.dumpStats ? Model.dumpStats() : [];
-      L.push('  bots with models: ' + modelDump.length);
-      for (const row of modelDump) {
-        L.push('  ' + row.botId + ': opponents ' + row.opponents.length);
-        for (const opp of row.opponents) {
-          L.push('    ' + opp.oppId + ' | hands ' + opp.hands + ' | vpip ' + opp.vpip + ' | pfr ' + opp.pfr +
-            ' | calls ' + opp.calls + ' | raises ' + opp.raises + ' | folds ' + opp.folds +
-            ' | showdowns ' + opp.showdowns + ' | aggIndex ' + fmtNum(opp.aggIndex));
-        }
-      }
-    } catch (e) {
-      L.push('  [error retrieving Model.dumpStats]');
-    }
-    L.push('Meta:');
-    try {
-      const metaDump = Meta.dumpState ? Meta.dumpState() : [];
-      L.push('  records: ' + metaDump.length);
-      for (const m of metaDump) {
-        L.push('    ' + m.botId + ' | image ' + m.image + ' | handsInImage ' + m.handsInImage + ' | duration ' + m.imageDuration);
-      }
-    } catch (e) {
-      L.push('  [error retrieving Meta.dumpState]');
-    }
-    L.push('Bots TYPES: ' + Object.keys(Bots.TYPES).join(', '));
-    L.push('Bots PROFILES: ' + Object.keys(Bots.PROFILES).join(', '));
+    L.push('Bots.__level: ' + bl.level);
+    L.push('Bots.__version: ' + bl.version);
+    L.push('Bots.__source: ' + bl.source);
+    L.push('bots.js loaded: ' + (bl.loadedJs ? 'yes' : 'no'));
+    L.push('Bots replaced by bots.js: ' + (bl.source === 'bots.js' ? 'yes' : 'no'));
+    L.push('Missing interface functions: ' + (bl.missingFns.length === 0 ? 'none' : bl.missingFns.join(', ')));
+    if (bl.source !== 'bots.js' && bl.loadedJs) L.push('WARNING: bots.js loaded but did not replace Bots (source != bots.js).');
+    L.push('Bots TYPES: ' + (window.Bots && window.Bots.TYPES ? Object.keys(window.Bots.TYPES).join(', ') : '—'));
+    L.push('Bots PROFILES: ' + (window.Bots && window.Bots.PROFILES ? Object.keys(window.Bots.PROFILES).join(', ') : '—'));
     L.push('');
 
     L.push('--- ENGINE CONSTANTS ---');
@@ -5586,6 +5124,7 @@ const UI = (() => {
     UI.setHeroTimerZoneEnabled(true);
     UI.setHeroTimerReady();
     updateHuGlowFromState();
+    applyBotsLevelIndicator();
     startNewSession();
     openDonateOverlay(false);
   }
@@ -5594,6 +5133,14 @@ const UI = (() => {
     window.addEventListener('DOMContentLoaded', onDomReady);
   } else {
     onDomReady();
+  }
+
+  function applyBotsLevelIndicator() {
+    const thumb = document.getElementById('raise-slider-thumb');
+    if (!thumb) return;
+    const b = window.Bots;
+    if (b && b.__level === 'top') thumb.classList.add('top-bots');
+    else thumb.classList.remove('top-bots');
   }
 
   function cacheDom() {
@@ -5813,22 +5360,6 @@ const UI = (() => {
     }
     node._lastDoubleTapTime = now;
     return false;
-  }
-
-  function isInteractiveTarget(target) {
-    if (!target) return false;
-    return !!(target.closest('button') ||
-              target.closest('input') ||
-              target.closest('select') ||
-              target.closest('a') ||
-              target.closest('#hero-actions') ||
-              target.closest('#quick-percent-list') ||
-              target.closest('.hero-timer-zone') ||
-              target.closest('#final-overlay') ||
-              target.closest('#donate-overlay') ||
-              target.closest('.seat-cards') ||
-              target.closest('.info-row') ||
-              target.closest('#board-cards'));
   }
 
   function bindBlindRowsTap() {
@@ -6133,8 +5664,6 @@ const UI = (() => {
     session.replay.pausedByWindow = false;
     session.huAutoActive = false;
 
-    Model.reset();
-    Meta.reset();
     UI.resetSeatAssignments();
 
     UI.hideFinalOverlay();
@@ -6148,6 +5677,7 @@ const UI = (() => {
     UI.setHeroTimerZoneEnabled(true);
     UI.setHeroTimerReady();
     updateHuGlowFromState();
+    applyBotsLevelIndicator();
 
     startNewSession();
   }
@@ -6173,16 +5703,15 @@ const UI = (() => {
     session.replay.pausedByWindow = false;
     session.huAutoActive = false;
 
-    Model.reset();
-    Meta.reset();
     UI.resetSeatAssignments();
+    applyBotsLevelIndicator();
 
-    const botTypes = Bots.assignBotTypes();
-    const shuffledTypes = Bots.assignBotsToSeats(botTypes);
+    const botTypes = window.Bots.assignBotTypes();
+    const shuffledTypes = window.Bots.assignBotsToSeats(botTypes);
 
     const players = [{ id: 'hero', name: 'Hero', isHero: true, botType: null, botClass: null, stack: Engine.STARTING_STACK }];
     for (let i = 0; i < 7; i++) {
-      const t = Bots.TYPES[shuffledTypes[i]];
+      const t = window.Bots.TYPES[shuffledTypes[i]];
       players.push({
         id: 'bot' + (i + 1),
         name: 'Player_' + (i + 1),
@@ -6415,6 +5944,35 @@ const UI = (() => {
     advanceOrFinish();
   }
 
+  function decideBotAction(bot, ctx) {
+    const isPreflop = ctx.street === 'preflop';
+    let result;
+    try {
+      if (isPreflop && typeof window.Bots.decidePreflop === 'function') {
+        result = window.Bots.decidePreflop(ctx);
+      } else if (!isPreflop && typeof window.Bots.decidePostflop === 'function') {
+        result = window.Bots.decidePostflop(ctx);
+      } else if (typeof window.Bots.decide === 'function') {
+        result = window.Bots.decide(ctx);
+      } else {
+        result = { action: 'fold', amount: 0 };
+      }
+    } catch (err) {
+      try {
+        window.__ppErrors.push({
+          ts: Date.now(),
+          kind: 'bot-decision-error',
+          message: err && err.message ? String(err.message) : String(err),
+          stack: err && err.stack ? String(err.stack) : '',
+          botType: bot.botType
+        });
+      } catch (e) {}
+      result = { action: 'fold', amount: 0 };
+    }
+    if (!result || typeof result !== 'object') result = { action: 'fold', amount: 0 };
+    return result;
+  }
+
   function botTurn(bot, idx) {
     const state = session.state;
     clearTimeout(session.botTimerId);
@@ -6422,9 +5980,9 @@ const UI = (() => {
       if (session.isPaused || session.viewingIndex >= 0 || session.replay.active) return;
       if (state.handOver || !session.active) return;
       const ctx = buildBotContext(bot, idx);
-      const decision = Bots.decide(ctx);
+      const result = decideBotAction(bot, ctx);
       const toCall = Math.max(0, state.currentBet - bot.committedThisStreet);
-      let engineAction = { type: decision.action, amount: decision.amount || 0 };
+      let engineAction = { type: result.action, amount: result.amount || 0 };
       if (engineAction.type === 'check' && toCall > 0) engineAction = { type: 'fold', amount: 0 };
       if (engineAction.type === 'bet' && state.currentBet > 0) engineAction.type = 'raise';
       if (engineAction.type === 'raise') {
@@ -6449,7 +6007,7 @@ const UI = (() => {
         Engine.applyAction(state, idx, fallback);
         engineAction = fallback;
       }
-      const botCtx = buildBotLogCtx(bot, ctx, engineAction, decision);
+      const botCtx = buildBotLogCtx(bot, ctx, engineAction, result);
       pushActionLog(state, idx, engineAction.type, engineAction.amount || 0, { botCtx });
       UI.updateSeats(state);
       UI.updatePot(state);
@@ -6468,75 +6026,46 @@ const UI = (() => {
     else facingRaise = state.currentBet > 0;
     const facing3Bet = state.street === 'preflop' && state.currentBet > state.blinds.bb * 3;
     const facingAllin = state.players.some(p => p !== bot && !p.folded && p.allIn && p.committedThisStreet >= state.currentBet);
-    let oppRead = null, oppLastAction = null, oppPosition = null, oppStackBB = 0, oppId = null;
+    let oppLastAction = null, oppPosition = null, oppStackBB = 0;
     if (raiser) {
-      oppId = raiser.isHero ? 'hero' : raiser.id;
       oppPosition = raiser.position;
       oppStackBB = raiser.stack / state.blinds.bb;
       oppLastAction = raiser.lastAction;
     }
-    const prof = Bots.PROFILES[bot.botType];
-    if (oppId && prof && prof.proThinking) oppRead = Model.getRead(bot.id, oppId);
     const alive = state.players.filter(p => !p.eliminated);
-    const stacks = alive.map(p => p.stack);
-    const botAliveIdx = alive.findIndex(p => p.id === bot.id);
-    let icmBubbleFactor = 1;
-    if (botAliveIdx >= 0 && prof && prof.proThinking) icmBubbleFactor = ICM.bubbleFactor(stacks, botAliveIdx, alive.length, 3);
-    const texture = Texture.analyze(state.board);
     const isAggressor = state.lastAggressorIndex === idx;
-    let heroBlockers = 0;
-    if (prof && prof.proThinking && oppLastAction) {
-      const oppRange = Math2.buildOpponentRange(oppLastAction, state.street, oppPosition, oppStackBB);
-      if (oppRange && oppRange.length > 0) heroBlockers = Math2.blockerEffect([bot.holeCards[0], bot.holeCards[1]], oppRange);
-    }
     return {
       card1: bot.holeCards[0], card2: bot.holeCards[1], board: state.board,
       street: state.street, pot: state.pot, toCall, minRaise: state.minRaise,
+      currentBet: state.currentBet,
       myStack: bot.stack, bb: state.blinds.bb, position: bot.position,
       numActive: state.players.filter(p => !p.folded && !p.eliminated).length,
       facingRaise, facing3Bet, facingAllin,
       raiserPosition: raiser ? raiser.position : null,
       botType: bot.botType, botId: bot.id, playersLeft: alive.length,
-      oppRead, oppLastAction, oppPosition, oppStackBB, icmBubbleFactor,
-      texture, isAggressor, heroBlockers
+      oppLastAction, oppPosition, oppStackBB,
+      isAggressor
     };
   }
 
-  function buildBotLogCtx(bot, ctx, finalAction, decision) {
+  function buildBotLogCtx(bot, ctx, finalAction, botResult) {
     const state = session.state;
-    const prof = Bots.PROFILES[bot.botType] || null;
-    const typeMeta = Bots.TYPES[bot.botType] || null;
+    const prof = window.Bots.PROFILES[bot.botType] || null;
     const allCards = [...bot.holeCards, ...state.board];
     const handScore = allCards.length >= 5 ? Engine.evaluateHand(allCards) : null;
-    const strength = handScore ? Bots.postflopStrength(handScore) : (bot.holeCards.length === 2 ? Bots.preflopStrength(bot.holeCards[0], bot.holeCards[1]) : 0);
-    let meta = null;
-    if (typeMeta && typeMeta.useMeta && prof) {
-      const img = Meta.getBotImage(bot.id, prof);
-      meta = { image: img.image, mods: Meta.imageModifiers(img.image) };
-    }
-    let plan = null;
-    let planDecision = null;
-    if (typeMeta && typeMeta.usePlan && prof && prof.proThinking && state.board.length > 0) {
-      plan = Plan.buildPlan(strength, ctx.texture, (bot.position === 'BTN' || bot.position === 'CO') ? 'IP' : 'OOP', ctx.isAggressor, prof);
-      planDecision = Plan.decideFromPlan(plan, state.street, ctx.texture);
-    }
-    let eq = null, potOdds = null, adjPotOdds = null;
-    if (prof && prof.proThinking && state.board.length >= 3 && ctx.toCall > 0 && typeMeta && typeMeta.equityIters > 0) {
-      const oppRange = Math2.buildOpponentRange(ctx.oppLastAction || 'check', state.street, ctx.oppPosition, ctx.oppStackBB);
-      eq = Math2.equityVsRange([bot.holeCards[0], bot.holeCards[1]], state.board, oppRange, typeMeta.equityIters);
-      potOdds = Math2.potOdds(ctx.toCall, state.pot);
-      adjPotOdds = (typeMeta.useICM && ctx.icmBubbleFactor > 1) ? potOdds * ctx.icmBubbleFactor : potOdds;
-    }
+    const strength = handScore ? window.Bots.postflopStrength(handScore) : (bot.holeCards.length === 2 ? window.Bots.preflopStrength(bot.holeCards[0], bot.holeCards[1]) : 0);
+    const level = (window.Bots && window.Bots.__level) ? window.Bots.__level : 'unknown';
+    const version = (window.Bots && window.Bots.__version) ? window.Bots.__version : '—';
+    const diagnostics = (botResult && botResult.diagnostics) ? botResult.diagnostics : null;
     const reasonParts = [];
     reasonParts.push('action: ' + finalAction.type + (finalAction.amount ? ' ' + finalAction.amount : ''));
-    if (eq !== null) reasonParts.push('equity ' + Math.round(eq*100) + '%');
-    if (potOdds !== null) reasonParts.push('pot odds ' + Math.round(potOdds*100) + '%');
-    if (planDecision) reasonParts.push('by plan: ' + planDecision);
-    if (ctx.oppRead) reasonParts.push('read (hands ' + ctx.oppRead.hands + ')');
+    if (diagnostics && diagnostics.reason) reasonParts.push(diagnostics.reason);
     const reason = reasonParts.join(' | ');
     return {
       botType: bot.botType,
       botClass: bot.botClass,
+      botLevel: level,
+      botVersion: version,
       position: bot.position,
       stackBB: bot.stack / state.blinds.bb,
       numActive: ctx.numActive,
@@ -6552,29 +6081,26 @@ const UI = (() => {
       board: state.board,
       handName: handScore ? handScore.name : '—',
       handStrength: strength,
-      texture: ctx.texture,
       isAggressor: ctx.isAggressor,
-      oppName: ctx.oppLastAction ? (session.state.players.find(p => p.id === (state.lastAggressorIndex !== null ? state.players[state.lastAggressorIndex].id : null)) || {}).name : null,
+      oppName: raiserNameHelper(state),
       oppPosition: ctx.oppPosition,
       oppStackBB: ctx.oppStackBB,
       oppLastAction: ctx.oppLastAction,
-      oppRead: ctx.oppRead,
-      icm: { bubbleFactor: ctx.icmBubbleFactor, playersLeft: ctx.playersLeft, prizeSpots: 3 },
-      eq, potOdds, adjPotOdds,
       profile: prof ? {
         aggression: prof.aggression,
         looseness: prof.looseness,
         bluff: prof.bluff,
-        callThreshold: prof.callThreshold,
-        adaptivity: prof.adaptivity,
-        tightBubble: prof.tightBubble
+        callThreshold: prof.callThreshold
       } : null,
-      meta,
-      adaptBonus: 0,
-      icmAdjust: 0,
-      plan, planDecision,
+      diagnostics,
       reason
     };
+  }
+
+  function raiserNameHelper(state) {
+    if (state.lastAggressorIndex === null) return null;
+    const r = state.players[state.lastAggressorIndex];
+    return r ? r.name : null;
   }
 
   function pushActionLog(state, playerIndex, actionType, amount, extra) {
@@ -6664,10 +6190,11 @@ const UI = (() => {
 
     for (const p of state.players) {
       if (!p.botType) continue;
-      const prof = Bots.PROFILES[p.botType];
-      if (!prof || !prof.proThinking) continue;
-      try { Model.updateFromHand(p.id, snapForModel); } catch (e) {}
-      try { Meta.tickImage(p.id, prof); } catch (e) {}
+      try { if (typeof window.Bots.updateModel === 'function') window.Bots.updateModel(p.id, snapForModel); } catch (e) {}
+      try {
+        const prof = window.Bots.PROFILES[p.botType];
+        if (prof && typeof window.Bots.updateMeta === 'function') window.Bots.updateMeta(p.id, prof);
+      } catch (e) {}
     }
 
     session.history.push(snapshotState(state));
