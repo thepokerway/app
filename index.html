@@ -4317,11 +4317,6 @@ const Log = (() => {
     return (Math.round(n * 100) / 100).toString();
   }
 
-  function fmtEq(v) {
-    if (v === null || v === undefined || isNaN(v)) return '—';
-    return (Math.round(v * 1000) / 10) + '%';
-  }
-
   function streetRu(s) {
     return ({ preflop:'preflop', flop:'flop', turn:'turn', river:'river' })[s] || s;
   }
@@ -4398,9 +4393,14 @@ const Log = (() => {
     const L = [];
     const now = new Date();
     const bl = botsLevelInfo();
+    const isHistoryView = !!(meta && meta.viewingPast);
+    const isReplay = !!(meta && meta.replayActive);
+
     L.push('=== THE POKER WAY — HAND LOG ===');
+    L.push('*** MODE: ' + (isHistoryView ? 'HISTORY (hand finished, all cards revealed in log)' : 'LIVE GAME') + (isReplay ? ' / REPLAY' : '') + ' ***');
+    L.push('Note: if mode is HISTORY, the board and all hole cards shown below are the FINAL state of a finished hand. Do not treat them as preflop knowledge of live bots.');
     L.push('Captured: ' + now.toLocaleString('en-US'));
-    L.push('Format version: v4');
+    L.push('Format version: v6');
     L.push('Current bots: ' + bl.current);
     L.push('Pending bots switch: ' + bl.pending);
     L.push('PRO available: ' + (bl.proAvailable ? 'yes' : 'no') + ' | version ' + bl.version);
@@ -4411,7 +4411,6 @@ const Log = (() => {
     L.push('Button number (internal index): ' + snap.buttonIndex);
     L.push('Final street: ' + (snap.finalStreet ? streetRu(snap.finalStreet) : '—'));
     L.push('Hand complete: ' + (snap.handOver ? 'yes' : 'no'));
-    L.push('Capture mode: ' + (meta.viewingPast ? 'history' : 'live') + (meta.replayActive ? ' / replay' : ''));
     L.push('');
 
     L.push('--- TABLE COMPOSITION ---');
@@ -4479,14 +4478,49 @@ const Log = (() => {
             ' | isRealRaise=' + (c.isRealRaise ? 'yes' : 'no'));
           if (c.diagnostics) {
             const d = c.diagnostics;
-            L.push('       [DIAGNOSTICS from bot] source: ' + (d.source || '—'));
-            if (d.strength !== undefined && d.strength !== null) L.push('       strength: ' + fmtNum(d.strength));
-            if (d.preflopStrength !== undefined && d.preflopStrength !== null) L.push('       preflop strength: ' + fmtNum(d.preflopStrength));
-            if (d.postflopStrength !== undefined && d.postflopStrength !== null) L.push('       postflop strength: ' + fmtNum(d.postflopStrength));
-            if (d.handName) L.push('       hand: ' + d.handName);
-            if (d.chart) L.push('       chart: ' + d.chart);
-            if (d.threshold !== undefined && d.threshold !== null) L.push('       threshold: ' + d.threshold);
+            L.push('       [DIAGNOSTICS from bot]');
+            L.push('       source: ' + (d.source || '—') + ' | botType: ' + (d.botType || '—'));
+            L.push('       decisionBranch: ' + (d.decisionBranch || d.contextType || '—'));
+            L.push('       strength: ' + (d.strength !== undefined ? fmtNum(d.strength) : '—') +
+              ' | strengthRaw: ' + (d.strengthRaw !== undefined ? fmtNum(d.strengthRaw) : '—') +
+              ' | equityRealization: ' + (d.equityRealization !== undefined ? fmtNum(d.equityRealization) : '—'));
+            L.push('       handName: ' + (d.handName || '—') +
+              ' | madeHandClass: ' + (d.madeHandClass || '—') +
+              ' | drawClass: ' + (d.drawClass || '—'));
+            L.push('       boardTexture: ' + (d.boardTexture || '—'));
+            L.push('       potOdds: ' + (d.potOdds !== undefined ? fmtNum(d.potOdds) : '—') +
+              ' | foldEquity: ' + (d.foldEquity !== undefined ? fmtNum(d.foldEquity) : '—') +
+              ' | spr: ' + (d.spr !== undefined ? fmtNum(d.spr) : '—') +
+              ' | effectiveStackBB: ' + (d.effectiveStackBB !== undefined ? fmtNum(d.effectiveStackBB) : '—'));
+            L.push('       stackDepth: ' + (d.stackDepth || '—') +
+              ' | positionModifier: ' + (d.positionModifier !== undefined ? fmtNum(d.positionModifier) : '—'));
+            L.push('       bubbleFactor: ' + (d.bubbleFactor !== undefined ? fmtNum(d.bubbleFactor) : '—') +
+              ' | icmPressure: ' + (d.icmPressure || '—') +
+              ' | payoutStructure: ' + (d.payoutStructure || '—'));
+            L.push('       blockerScore: ' + (d.blockerScore !== undefined ? fmtNum(d.blockerScore) : '—') +
+              ' | blockerReason: ' + (d.blockerReason || '—'));
+            L.push('       opponentType: ' + (d.opponentType || '—') +
+              ' | exploitActive: ' + (d.exploitActive ? 'yes' : 'no') +
+              ' | exploitReason: ' + (d.exploitReason || '—'));
+            L.push('       statUsed: ' + (d.statUsed || d.statKey || '—') +
+              ' | statConfidence: ' + (d.statConfidence !== undefined ? fmtNum(d.statConfidence) : '—') +
+              ' | statEffect: ' + (d.statEffect !== undefined ? fmtNum(d.statEffect) : '—') +
+              ' | statSampleSize: ' + (d.statSampleSize !== undefined ? d.statSampleSize : '—'));
+            L.push('       frequency: ' + (d.frequency !== undefined ? fmtNum(d.frequency) : '—') +
+              ' | randomRoll: ' + (d.randomRoll !== undefined ? fmtNum(d.randomRoll) : '—') +
+              ' | threshold: ' + (d.threshold !== undefined ? String(d.threshold) : '—'));
+            L.push('       sizingReason: ' + (d.sizingReason || '—') +
+              ' | metaLevel: ' + (d.metaLevel !== undefined ? d.metaLevel : '—') +
+              ' | adaptationDetected: ' + (d.adaptationDetected ? 'yes' : 'no'));
+            L.push('       limpingReason: ' + (d.limpingReason || '—'));
+            if (d.evFold !== undefined || d.evCall !== undefined || d.evRaise !== undefined) {
+              L.push('       EV: fold=' + fmtNum(d.evFold) + ' | call=' + fmtNum(d.evCall) + ' | raise=' + fmtNum(d.evRaise));
+            }
+            if (d.equityRaw !== undefined || d.equityVsRange !== undefined) {
+              L.push('       equity: raw=' + fmtNum(d.equityRaw) + ' | vsRange=' + fmtNum(d.equityVsRange) + ' | realized=' + fmtNum(d.equityRealized));
+            }
             if (d.reason) L.push('       RESULT: ' + d.reason);
+            if (d.error) L.push('       ERROR: ' + d.error);
           } else {
             L.push('       [DIAGNOSTICS MISSING — bot did not provide diagnostics]');
           }
@@ -4501,6 +4535,7 @@ const Log = (() => {
           L.push('       stack before: ' + fmtNum(h.stackBefore) + ' | after: ' + fmtNum(h.stackAfter));
           L.push('       invested this street: ' + fmtNum(h.committedThisStreet) +
             ' | total: ' + fmtNum(h.committedTotal));
+          if (h.quickOptions && h.quickOptions.length) L.push('       quick options: ' + h.quickOptions.join(', '));
         }
       }
     }
@@ -4535,6 +4570,22 @@ const Log = (() => {
         const committed = p.committedTotal || 0;
         L.push('   ' + p.name + ': received ' + amount + ' | invested ' + committed + ' | net ' + (amount - committed));
       }
+    }
+    L.push('');
+
+    L.push('--- PER-PLAYER SUMMARY ---');
+    for (const p of snap.players) {
+      const acts = (snap.actionLog || []).filter(a => a.playerIndex === p.seatIndex);
+      const folds = acts.filter(a => a.actionType === 'fold').length;
+      const calls = acts.filter(a => a.actionType === 'call').length;
+      const raises = acts.filter(a => a.actionType === 'raise' || a.actionType === 'bet').length;
+      const checks = acts.filter(a => a.actionType === 'check').length;
+      const allins = acts.filter(a => a.actionType === 'allin').length;
+      L.push('  ' + p.name + ' [' + (p.position || '—') + ']: ' +
+        'actions=' + acts.length +
+        ' | fold=' + folds + ' call=' + calls + ' raise=' + raises + ' check=' + checks + ' allin=' + allins +
+        ' | invested=' + (p.committedTotal || 0) +
+        ' | finalStack=' + p.stack);
     }
     L.push('');
 
@@ -4594,14 +4645,14 @@ const Log = (() => {
       const id = entry[0];
       const stats = entry[1] || {};
       L.push('  --- ' + id + ' ---');
-      const core = ['handsPlayed','showdowns','showdownWins','positionalAwareness'];
+      const core = ['handsPlayed','showdowns','showdownWins','positionalAwareness','limpTrapCount','adaptationDetected'];
       for (const k of core) {
-        if (stats[k] !== undefined) L.push('    ' + k + ' = ' + fmtNum(stats[k]));
+        if (stats[k] !== undefined) L.push('    ' + k + ' = ' + (typeof stats[k] === 'boolean' ? (stats[k] ? 'yes' : 'no') : fmtNum(stats[k])));
       }
       const metrics = Object.keys(stats).filter(k =>
         typeof stats[k] === 'number' &&
         k !== 'handsPlayed' && k !== 'showdowns' && k !== 'showdownWins' &&
-        k !== 'positionalAwareness' &&
+        k !== 'positionalAwareness' && k !== 'limpTrapCount' &&
         !k.endsWith('Opportunities') &&
         k.indexOf('_') !== 0
       );
@@ -4612,16 +4663,17 @@ const Log = (() => {
           ' = ' + (opp > 0 ? fmtNum(stats[m] / opp) : '—') +
           ' | opp=' + opp);
       }
-      // Shrunk view if available
       try {
-        const shrinkKeys = ['rfi','threeBet','foldTo3Bet','coldCall','fourBet','foldTo4Bet','foldToResteal','foldBbToStealBtn','sbRfiVsBb','bbDefendVsBtn','limp','isoRaise','squeeze'];
+        const shrinkKeys = ['rfi','threeBet','foldTo3Bet','coldCall','fourBet','foldTo4Bet','foldToResteal','foldBbToStealBtn','sbRfiVsBb','bbDefendVsBtn','limp','isoRaise','squeeze','resteal','steal','fiveBet','cold4Bet','call4Bet','foldToSqueeze','squeezeVs1','squeezeVs2','bbDefendVsUtg','bbDefendVsCo','sbDefendVsBtn','sbRfiVsBb','sbFoldVsBb3Bet'];
         if (typeof b.getShrunk === 'function' && internal && internal.opponentStats && internal.opponentStats.has(id)) {
           const parts = [];
           for (const sk of shrinkKeys) {
-            const sh = b.getShrunk(id, sk);
-            if (sh && sh.sampleSize > 0) {
-              parts.push(sk + '=v' + fmtNum(sh.value) + '/r' + fmtNum(sh.raw) + '/c' + fmtNum(sh.confidence) + '/n' + sh.sampleSize);
-            }
+            try {
+              const sh = b.getShrunk(id, sk);
+              if (sh && sh.sampleSize > 0) {
+                parts.push(sk + '=v' + fmtNum(sh.value) + '/r' + fmtNum(sh.raw) + '/c' + fmtNum(sh.confidence) + '/n' + sh.sampleSize);
+              }
+            } catch (e) {}
           }
           if (parts.length) L.push('    shrunk: ' + parts.join(' '));
         }
@@ -4636,10 +4688,16 @@ const Log = (() => {
     const startTs = app.sessionStartTs;
     const uptime = Date.now() - startTs;
     const bl = botsLevelInfo();
+    const s = app.session;
+    const st = s.state;
+    const isHistoryView = s.viewingIndex >= 0 && !s.replay.active;
+    const isReplay = s.replay.active;
 
     L.push('=== THE POKER WAY — FULL APP LOG (SESSION) ===');
+    L.push('*** MODE: ' + (isReplay ? 'REPLAY' : (isHistoryView ? 'HISTORY VIEW' : 'LIVE GAME')) + ' ***');
+    L.push('Note: in HISTORY/REPLAY mode, all cards are final revealed states of finished hands. Do not treat them as preflop knowledge of live bots.');
     L.push('Captured: ' + now.toLocaleString('en-US'));
-    L.push('Format version: v5');
+    L.push('Format version: v6');
     L.push('Current bots: ' + bl.current);
     L.push('Pending bots switch: ' + bl.pending);
     L.push('PRO available: ' + (bl.proAvailable ? 'yes' : 'no') + ' | version ' + bl.version);
@@ -4666,7 +4724,6 @@ const Log = (() => {
     L.push('');
 
     L.push('--- SESSION STATE ---');
-    const s = app.session;
     L.push('Current bots: ' + bl.current);
     L.push('Pending bots switch: ' + bl.pending);
     L.push('PRO available: ' + (bl.proAvailable ? 'yes' : 'no'));
@@ -4680,7 +4737,7 @@ const Log = (() => {
     L.push('huAutoActive: ' + (s.huAutoActive ? 'yes' : 'no'));
     L.push('history.length: ' + (s.history ? s.history.length : 0));
     L.push('viewingIndex: ' + s.viewingIndex);
-    L.push('Mode: ' + (s.replay.active ? 'replay' : (s.viewingIndex >= 0 ? 'history' : 'live game')));
+    L.push('Mode: ' + (isReplay ? 'replay' : (s.viewingIndex >= 0 ? 'history' : 'live game')));
     L.push('');
 
     L.push('--- TIMERS / ASYNC ---');
@@ -4713,7 +4770,6 @@ const Log = (() => {
     L.push('');
 
     L.push('--- CURRENT TABLE STATE ---');
-    const st = s.state;
     if (!st) {
       L.push('Table state missing');
     } else {
@@ -4746,6 +4802,36 @@ const Log = (() => {
           ' hasActedThisStreet=' + (p.hasActedThisStreet ? 'y' : 'n') +
           ' | cards ' + (p.holeCards && p.holeCards.length ? p.holeCards.map(c => c.rank + c.suit).join(' ') : '—'));
       }
+      L.push('');
+      L.push('Action log (current hand):');
+      if (st.actionLog && st.actionLog.length) {
+        for (let i = 0; i < st.actionLog.length; i++) {
+          const a = st.actionLog[i];
+          const pp = st.players.find(pl => pl.seatIndex === a.playerIndex);
+          L.push('  #' + (i+1) + ' [' + a.street + '] ' + (pp ? pp.name : ('seat ' + a.playerIndex)) +
+            ' → ' + a.actionType + (a.amount ? ' ' + a.amount : '') + ' | potAfter=' + a.potAfter);
+        }
+      } else {
+        L.push('  (empty)');
+      }
+      L.push('');
+      L.push('Showdown results (current):');
+      if (st.showdownResults) {
+        for (const [id, sc] of Object.entries(st.showdownResults.scores || {})) {
+          const pp = st.players.find(pl => String(pl.id) === String(id));
+          L.push('  ' + (pp ? pp.name : id) + ': ' + (sc ? sc.name + ' (cat ' + sc.category + ')' : 'no showdown'));
+        }
+        for (let i = 0; i < (st.showdownResults.pots || []).length; i++) {
+          const pot = st.showdownResults.pots[i];
+          L.push('  pot #' + (i+1) + ': ' + pot.amount + ' | winners: ' + (pot.winners || []).join(', '));
+        }
+        for (const [id, amount] of Object.entries(st.showdownResults.payouts || {})) {
+          const pp = st.players.find(pl => String(pl.id) === String(id));
+          L.push('  payout: ' + (pp ? pp.name : id) + ' got ' + amount + ' | invested ' + (pp ? pp.committedTotal : '?'));
+        }
+      } else {
+        L.push('  (null)');
+      }
     }
     L.push('');
 
@@ -4754,20 +4840,21 @@ const Log = (() => {
     for (const line of statLines) L.push(line);
     L.push('');
 
-    L.push('--- LAST BOT DECISION CONTEXTS ---');
+    L.push('--- LAST BOT DECISION CONTEXTS (current hand) ---');
     if (st && st.actionLog) {
       const botEntries = st.actionLog.filter(a => a.botCtx);
-      const tail = botEntries.slice(-10);
+      const tail = botEntries.slice(-12);
       if (tail.length === 0) {
         L.push('No bot decisions in current hand');
       } else {
-        L.push('Last ' + tail.length + ' bot decisions in current hand:');
+        L.push('Last ' + tail.length + ' bot decisions:');
         for (const a of tail) {
           const c = a.botCtx;
-          const p = st.players.find(pl => pl.seatIndex === a.playerIndex);
-          L.push('  ' + (p ? p.name : ('seat ' + a.playerIndex)) +
+          const pp = st.players.find(pl => pl.seatIndex === a.playerIndex);
+          L.push('  ' + (pp ? pp.name : ('seat ' + a.playerIndex)) +
             ' | street=' + a.street +
             ' | action=' + a.actionType + (a.amount ? ' ' + a.amount : '') +
+            ' | branch=' + (c.diagnostics && (c.diagnostics.decisionBranch || c.diagnostics.contextType) || c.contextType || '—') +
             ' | ctx=' + (c.contextType || '—') +
             ' | raiserPos=' + (c.raiserPosition || '—') +
             ' | limpers=' + (c.numLimpers !== undefined ? c.numLimpers : '—') +
@@ -4777,6 +4864,9 @@ const Log = (() => {
             ' | pot=' + fmtNum(c.pot) +
             ' | stackBB=' + fmtNum(c.stackBB) +
             ' | strength=' + (c.diagnostics && c.diagnostics.strength !== undefined ? fmtNum(c.diagnostics.strength) : '—') +
+            ' | oppType=' + (c.diagnostics && c.diagnostics.opponentType || '—') +
+            ' | statUsed=' + (c.diagnostics && (c.diagnostics.statUsed || c.diagnostics.statKey) || '—') +
+            ' | statConf=' + (c.diagnostics && c.diagnostics.statConfidence !== undefined ? fmtNum(c.diagnostics.statConfidence) : '—') +
             ' | reason=' + (c.diagnostics && c.diagnostics.reason ? c.diagnostics.reason : '—'));
         }
       }
@@ -4801,7 +4891,10 @@ const Log = (() => {
     L.push('hero-actions inactive: ' + (UI.el.heroActions && UI.el.heroActions.classList.contains('inactive') ? 'yes' : 'no'));
     if (UI.el.btnFold) L.push('Fold: disabled ' + (UI.el.btnFold.disabled ? 'yes' : 'no'));
     if (UI.el.btnCheck) L.push('Check: disabled ' + (UI.el.btnCheck.disabled ? 'yes' : 'no'));
-    if (UI.el.btnCall) L.push('Call: disabled ' + (UI.el.btnCall.disabled ? 'yes' : 'no'));
+    if (UI.el.btnCall) {
+      L.push('Call: disabled ' + (UI.el.btnCall.disabled ? 'yes' : 'no') +
+        ' | mode ' + (UI.el.btnCall.classList.contains('mode-raise') ? 'raise' : (UI.el.btnCall.classList.contains('mode-bet') ? 'bet' : 'call')));
+    }
     const slider = UI.getSliderState ? UI.getSliderState() : null;
     if (slider) {
       L.push('slider: active=' + (slider.active ? 'y' : 'n') +
@@ -4809,6 +4902,16 @@ const Log = (() => {
         ' minRaise=' + fmtNum(slider.minRaiseValue) +
         ' max=' + fmtNum(slider.maxValue) +
         ' current=' + fmtNum(slider.currentValue));
+    }
+    const qp = document.getElementById('quick-percent-list');
+    if (qp) {
+      const labels = [];
+      qp.querySelectorAll('button').forEach(b => {
+        const lbl = b.querySelector('.label');
+        const val = b.querySelector('.value');
+        labels.push((lbl ? lbl.textContent : '?') + '=' + (val ? val.textContent : '?'));
+      });
+      if (labels.length) L.push('quick-percent options: ' + labels.join(', '));
     }
     L.push('');
 
@@ -4826,9 +4929,48 @@ const Log = (() => {
       if (timerEl) L.push('timer text: ' + timerEl.textContent);
       const placeEl = document.getElementById('place-line');
       if (placeEl) L.push('rank line: ' + placeEl.textContent);
+      const haEl = document.getElementById('hero-actions');
+      if (haEl) L.push('hero-actions visible: ' + (!haEl.classList.contains('inactive') ? 'yes' : 'no'));
       const qpEl = document.getElementById('quick-percent-list');
       if (qpEl) L.push('quick-percent buttons: ' + qpEl.children.length);
+      const foEl = document.getElementById('final-overlay');
+      if (foEl) L.push('final-overlay visible: ' + (foEl.classList.contains('visible') ? 'yes' : 'no'));
+      const doEl = document.getElementById('donate-overlay');
+      if (doEl) L.push('donate-overlay visible: ' + (doEl.classList.contains('visible') ? 'yes' : 'no'));
     } catch (e) {}
+    L.push('');
+
+    L.push('--- HISTORY SUMMARY (last up to 20 hands) ---');
+    try {
+      const hist = s.history || [];
+      if (hist.length === 0) {
+        L.push('No hands in history');
+      } else {
+        const start = Math.max(0, hist.length - 20);
+        L.push('Showing hands ' + (start+1) + '..' + hist.length + ' of ' + hist.length);
+        for (let i = start; i < hist.length; i++) {
+          const snap = hist[i];
+          const alive = (snap.players || []).filter(p => !p.eliminated).length;
+          const showdownPlayers = snap.showdownResults && snap.showdownResults.scores ? Object.keys(snap.showdownResults.scores).length : 0;
+          let winnerName = '—';
+          let winnerPayout = 0;
+          if (snap.showdownResults && snap.showdownResults.payouts) {
+            for (const [id, amount] of Object.entries(snap.showdownResults.payouts)) {
+              if (amount > winnerPayout) {
+                const pp = (snap.players || []).find(pl => String(pl.id) === String(id));
+                winnerName = pp ? pp.name : id;
+                winnerPayout = amount;
+              }
+            }
+          }
+          L.push('  #' + snap.handNumber + ' | finalStreet=' + (snap.finalStreet || '—') +
+            ' | pot=' + snap.pot +
+            ' | aliveAfter=' + alive +
+            ' | showdown=' + showdownPlayers +
+            ' | winner=' + winnerName + ' (' + winnerPayout + ')');
+        }
+      }
+    } catch (e) { L.push('  history summary error'); }
     L.push('');
 
     L.push('--- MODULES ---');
@@ -4837,6 +4979,7 @@ const Log = (() => {
     L.push('window.Bots.__source: ' + ((window.Bots && window.Bots.__source) || '—'));
     L.push('window.__botsJsLoaded: ' + (window.__botsJsLoaded ? 'yes' : 'no'));
     L.push('window.VipBots available: ' + (window.VipBots ? 'yes' : 'no'));
+    L.push('Engine available: ' + (window.Engine ? 'yes' : 'no'));
     L.push('');
 
     L.push('--- SESSION ERRORS ---');
@@ -4847,7 +4990,8 @@ const Log = (() => {
       L.push('Total: ' + errs.length);
       for (const e of errs) {
         L.push('  [' + new Date(e.ts).toLocaleString('en-US') + '] ' + e.kind + ': ' + e.message);
-        if (e.stack) L.push('    stack: ' + String(e.stack).split('\n').slice(0, 5).join(' | '));
+        if (e.source) L.push('    source: ' + e.source + ' line:' + (e.line || 0) + ' col:' + (e.col || 0));
+        if (e.stack) L.push('    stack: ' + String(e.stack));
       }
     }
     L.push('');
@@ -6066,7 +6210,6 @@ const Log = (() => {
   function detectContextType(state, player, idx, toCall) {
     const bb = state.blinds.bb;
     const street = state.street;
-    const aliveInHand = state.players.filter(p => !p.eliminated && p.inHand && !p.folded);
     const numActive = state.players.filter(p => !p.folded && !p.eliminated).length;
 
     if (street !== 'preflop') {
@@ -6080,20 +6223,13 @@ const Log = (() => {
     }
 
     const isBB = (player.position === 'BB');
-    const isSB = (player.position === 'SB');
     const preflopCurrentBet = state.currentBet;
 
-    // Collect info about aggression and limps
-    let raiserIndex = -1;
     let numLimpers = 0;
     for (const p of state.players) {
       if (p === player) continue;
       if (p.eliminated || p.folded || !p.inHand) continue;
-      if (p.committedThisStreet > bb && p.lastAction !== 'sb' && p.lastAction !== 'bb') {
-        if (raiserIndex < 0 || p.committedThisStreet > state.players[raiserIndex].committedThisStreet) raiserIndex = p.seatIndex;
-      } else if (p.committedThisStreet === bb && p.lastAction === 'call') {
-        numLimpers++;
-      }
+      if (p.committedThisStreet === bb && p.lastAction === 'call') numLimpers++;
     }
 
     const currentRaiseLevel = preflopCurrentBet / bb;
@@ -6101,12 +6237,7 @@ const Log = (() => {
     const facingAllin = state.players.some(p =>
       p !== player && !p.folded && !p.eliminated && p.allIn && p.committedThisStreet >= preflopCurrentBet);
 
-    // BB check option: no raise, everyone limped or folded, BB has no call to make
     if (isBB && toCall === 0 && !isRealRaise) {
-      return 'bb_check_option';
-    }
-    if (isBB && toCall === 0 && isRealRaise && numLimpers === 0) {
-      // BB facing SB limp only (HU-like) - no real raise, SB called bb
       return 'bb_check_option';
     }
 
@@ -6117,9 +6248,13 @@ const Log = (() => {
       return 'unopened';
     }
 
-    // Real raise exists
-    if (currentRaiseLevel >= 4.0) return 'facing_4bet';
-    if (currentRaiseLevel >= 2.3) return 'facing_3bet';
+    // Correct thresholds:
+    // - opening raise: 2.0 - 3.5 bb (raiseLevel 2.0 - 3.5)
+    // - 3-bet: typically 8 - 14 bb (raiseLevel 4.5 - 7.5)
+    // - 4-bet: typically 22 - 35 bb (raiseLevel 10 - 18)
+    // - 5-bet+: 50+ bb
+    if (currentRaiseLevel >= 10.0) return 'facing_4bet';
+    if (currentRaiseLevel >= 4.5) return 'facing_3bet';
     return 'facing_raise';
   }
 
@@ -6130,8 +6265,8 @@ const Log = (() => {
     let facingRaise;
     if (state.street === 'preflop') facingRaise = state.currentBet > state.blinds.bb;
     else facingRaise = state.currentBet > 0;
-    const facing3Bet = state.street === 'preflop' && state.currentBet > state.blinds.bb * 3;
-    const facing4Bet = state.street === 'preflop' && state.currentBet >= state.blinds.bb * 6;
+    const facing3Bet = state.street === 'preflop' && state.currentBet > state.blinds.bb * 4.5;
+    const facing4Bet = state.street === 'preflop' && state.currentBet >= state.blinds.bb * 10;
     const facingAllin = state.players.some(p => p !== bot && !p.folded && p.allIn && p.committedThisStreet >= state.currentBet);
     let oppLastAction = null, oppPosition = null, oppStackBB = 0;
     if (raiser) {
@@ -6142,7 +6277,6 @@ const Log = (() => {
     const alive = state.players.filter(p => !p.eliminated);
     const isAggressor = state.lastAggressorIndex === idx;
 
-    // New: extended context information
     const contextType = detectContextType(state, bot, idx, toCall);
     let numLimpers = 0;
     for (const p of state.players) {
@@ -6157,7 +6291,7 @@ const Log = (() => {
       : state.currentBet > 0;
 
     return {
-      card1: bot.holeCards[0], card2: bot.holeCards[1], board: state.board,
+      card1: bot.holeCards[0], card2: bot.holeCards[1], board: state.board.map(c => ({ ...c })),
       street: state.street, pot: state.pot, toCall, minRaise: state.minRaise,
       currentBet: state.currentBet,
       myStack: bot.stack, bb: state.blinds.bb, position: bot.position,
@@ -6167,7 +6301,6 @@ const Log = (() => {
       botType: bot.botType, botId: bot.id, playersLeft: alive.length,
       oppLastAction, oppPosition, oppStackBB,
       isAggressor,
-      // Extended fields
       contextType,
       numLimpers,
       isRealRaise,
@@ -6204,11 +6337,10 @@ const Log = (() => {
       myStack: bot.stack,
       committedThisStreet: bot.committedThisStreet,
       committedTotal: bot.committedTotal,
-      holeCards: bot.holeCards,
-      board: state.board,
+      holeCards: bot.holeCards.map(c => ({ ...c })),
+      board: state.board.map(c => ({ ...c })),
       handName: handScore ? handScore.name : '—',
       isAggressor: ctx.isAggressor,
-      // Extended fields
       contextType: ctx.contextType,
       raiserPosition: ctx.raiserPosition,
       numLimpers: ctx.numLimpers,
@@ -6411,7 +6543,16 @@ const Log = (() => {
         inHand: p.inHand, heroFinishPlace: p.heroFinishPlace || 0
       })),
       showdownResults: state.showdownResults,
-      actionLog: (state.actionLog || []).map(a => ({ ...a }))
+      actionLog: (state.actionLog || []).map(a => {
+        const copy = { ...a };
+        if (copy.botCtx) {
+          copy.botCtx = { ...copy.botCtx };
+          copy.botCtx.board = (copy.botCtx.board || []).map(c => ({ ...c }));
+          copy.botCtx.holeCards = (copy.botCtx.holeCards || []).map(c => ({ ...c }));
+          if (copy.botCtx.diagnostics) copy.botCtx.diagnostics = { ...copy.botCtx.diagnostics };
+        }
+        return copy;
+      })
     };
   }
 
