@@ -29,8 +29,8 @@
   --muted: #8a8a8a;
   --muted-soft: #9a9a9a;
   --muted-soft-2: #a8a8a8;
-  --pro-color: #d94f3d;
-  --vip-color: #3fa9f5;
+  --pro-color: #a01f0e;
+  --vip-color: #0a3a6b;
   --accent: #3fa9f5;
   --danger: #d94f3d;
   --ok: #2fb571;
@@ -559,7 +559,10 @@ html::-webkit-scrollbar, body::-webkit-scrollbar,
 }
 .seat .dealer-chip.dealer-chip-pro .dealer-letter { color: var(--pro-color); }
 .seat .dealer-chip.dealer-chip-vip .dealer-letter { color: var(--vip-color); }
-.seat .dealer-chip.dealer-chip-disabled { cursor: default; }
+.seat .dealer-chip.dealer-chip-disabled,
+.seat .dealer-chip.dealer-chip-disabled .dealer-letter {
+  cursor: default !important;
+}
 
 .seat.left .dealer-chip { right: clamp(-26px, -3.4vmin, -22px); top: 28px; left: auto; }
 .seat.right .dealer-chip,
@@ -3532,10 +3535,14 @@ const UI = (() => {
     let display = level;
     if (pending === 'to-vip') display = 'vip';
     else if (pending === 'to-pro') display = 'pro';
+    const inHistory = (typeof window.__sessionShowHistoryLabel !== 'undefined') && window.__sessionShowHistoryLabel === true;
+    const replayActive = (typeof window.__replayActive !== 'undefined') && window.__replayActive === true;
+    const nonInteractive = inHistory || replayActive;
     chips.forEach(chip => {
-      chip.classList.remove('dealer-chip-pro', 'dealer-chip-vip');
+      chip.classList.remove('dealer-chip-pro', 'dealer-chip-vip', 'dealer-chip-disabled');
       if (display === 'pro') chip.classList.add('dealer-chip-pro');
       else chip.classList.add('dealer-chip-vip');
+      if (nonInteractive) chip.classList.add('dealer-chip-disabled');
     });
     if (el.hnRestart) {
       el.hnRestart.classList.remove('nav-restart-pending-vip', 'nav-restart-pending-pro');
@@ -5088,6 +5095,7 @@ const Log = (() => {
       if (!chip) return;
       e.preventDefault();
       e.stopPropagation();
+      if (chip.classList.contains('dealer-chip-disabled')) return;
       const now = Date.now();
       if (now - lastTapTs < TAP_COOLDOWN) return;
       lastTapTs = now;
@@ -6185,6 +6193,7 @@ const Log = (() => {
     }
     syncHistoryFlags();
     renderHistorySnapshot();
+    UI.applyDealerChipIndicator();
   }
 
   function renderHistorySnapshot() {
@@ -6204,6 +6213,7 @@ const Log = (() => {
     UI.setHeroTimerOff();
     updateHistoryCopyAppearance();
     updateRestartButtonAppearance();
+    UI.applyDealerChipIndicator();
   }
 
   function buildReplaySteps(snap) {
